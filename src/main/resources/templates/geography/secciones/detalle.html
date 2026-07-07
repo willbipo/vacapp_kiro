@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${seccion.nombre} + ' - Detalle'">Detalle Sección</title>
+    <link rel="stylesheet" th:href="@{/css/geography/secciones.css}" />
+</head>
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <a th:href="@{/geography/secciones}" class="breadcrumb">← Volver a Secciones</a>
+                <h1 th:text="${seccion.nombre}">Nombre Sección</h1>
+                <span class="status-badge" th:classappend="${seccion.status == T(mx.vacapp.geography.internal.domain.model.GeographicStatus).ACTIVE ? 'active' : 'archived'}" 
+                      th:text="${seccion.status}">ACTIVE</span>
+            </div>
+            <div class="actions">
+                <a th:href="@{/geography/secciones/{id}/editar(id=${seccion.seccionId})}" class="btn-primary">Editar</a>
+                <button onclick="archivarSeccion()" class="btn-danger">Archivar</button>
+            </div>
+        </header>
+
+        <!-- Mensajes Flash -->
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+        <!-- Información de la Sección -->
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>Datos Básicos</h3>
+                <div class="info-row">
+                    <span class="label">ID:</span>
+                    <span class="value" th:text="${seccion.seccionId}">uuid</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Nombre:</span>
+                    <span class="value" th:text="${seccion.nombre}">Nombre</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Rancho:</span>
+                    <a th:href="@{/geography/ranchos/{id}(id=${seccion.ranchoId})}" 
+                       class="value-link" 
+                       th:text="${seccion.ranchoId}">ID Rancho</a>
+                </div>
+                <div class="info-row">
+                    <span class="label">Descripción:</span>
+                    <span class="value" th:text="${seccion.descripcion ?: 'Sin descripción'}">Descripción</span>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Superficies</h3>
+                <div class="info-row">
+                    <span class="label">Superficie Total:</span>
+                    <span class="value" th:text="${#numbers.formatDecimal(seccion.superficie, 0, 'COMMA', 2, 'POINT')} + ' m²'">5,000 m²</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Superficie Usada:</span>
+                    <span class="value" th:text="${#numbers.formatDecimal(seccion.superficieUsada, 0, 'COMMA', 2, 'POINT')} + ' m²'">2,000 m²</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Superficie Disponible:</span>
+                    <span class="value" th:text="${#numbers.formatDecimal(seccion.superficieDisponible, 0, 'COMMA', 2, 'POINT')} + ' m²'">3,000 m²</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Potreros de la Sección -->
+        <div class="section-content">
+            <div class="section-header">
+                <h2>Potreros de esta Sección</h2>
+                <a th:href="@{/geography/potreros/nuevo(seccionId=${seccion.seccionId}, ranchoId=${seccion.ranchoId})}" class="btn-primary">+ Nuevo Potrero</a>
+            </div>
+            <div id="potreros-container">
+                <p class="loading">Cargando potreros...</p>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const seccionId = /*[[${seccion.seccionId}]]*/ 'uuid';
+        const apiBase = '/api/v1/geography';
+
+        // Cargar potreros de la sección
+        async function cargarPotreros() {
+            const container = document.getElementById('potreros-container');
+            try {
+                const token = sessionStorage.getItem('vacapp_token');
+                const response = await fetch(`${apiBase}/secciones/${seccionId}/potreros`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Error cargando potreros');
+
+                const potreros = await response.json();
+
+                if (potreros.length === 0) {
+                    container.innerHTML = '<p class="empty">No hay potreros registrados en esta sección.</p>';
+                    return;
+                }
+
+                container.innerHTML = potreros.map(p => `
+                    <div class="item-card">
+                        <h4>${p.nombre}</h4>
+                        <p>Superficie: ${formatNumber(p.superficie)} m²</p>
+                        <p>Ganado: ${p.cattleCount} animales</p>
+                        <a href="/geography/potreros/${p.potreroId}" class="btn-link">Ver Detalle</a>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                container.innerHTML = '<p class="error">Error cargando potreros.</p>';
+            }
+        }
+
+        // Archivar sección
+        async function archivarSeccion() {
+            if (!confirm('¿Está seguro de archivar esta sección?')) return;
+
+            try {
+                const token = sessionStorage.getItem('vacapp_token');
+                const response = await fetch(`${apiBase}/secciones/${seccionId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Sección archivada exitosamente');
+                    window.location.href = '/geography/secciones';
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.message);
+                }
+            } catch (error) {
+                alert('Error archivando sección');
+            }
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('es-MX', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            }).format(num);
+        }
+
+        // Cargar potreros al cargar la página
+        window.addEventListener('DOMContentLoaded', cargarPotreros);
+    </script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+/* Estilos para el dashboard */
+
+.dashboard-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.dashboard-content {
+    flex: 1;
+    margin-left: 250px;
+    margin-top: 60px;
+    padding: var(--spacing-xl);
+    background-color: #f5f5f5;
+}
+
+.dashboard-header {
+    margin-bottom: var(--spacing-xl);
+}
+
+.dashboard-title {
+    color: var(--text-color);
+    font-size: 2rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.dashboard-subtitle {
+    color: var(--text-muted);
+    font-size: var(--font-size-base);
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.dashboard-card {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.dashboard-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.dashboard-card-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background-color: var(--secondary-color);
+}
+
+.dashboard-card-icon svg {
+    stroke: var(--primary-color);
+}
+
+.dashboard-card-title {
+    font-size: var(--font-size-base);
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.dashboard-card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: var(--spacing-sm);
+}
+
+.dashboard-card-trend {
+    font-size: var(--font-size-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.trend-up {
+    color: var(--success-color);
+}
+
+.trend-down {
+    color: var(--danger-color);
+}
+
+.dashboard-section {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.dashboard-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.dashboard-section-title {
+    font-size: var(--font-size-xl);
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.dashboard-list {
+    list-style: none;
+}
+
+.dashboard-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-list-item:last-child {
+    border-bottom: none;
+}
+
+.dashboard-list-item-title {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.dashboard-list-item-subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+
+.dashboard-list-item-value {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.btn-link {
+    color: var(--primary-color);
+    background: none;
+    border: none;
+    font-size: var(--font-size-base);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.btn-link:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-muted);
+}
+
+.empty-state-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto var(--spacing-md);
+    opacity: 0.5;
+}
+
+.empty-state-title {
+    font-size: var(--font-size-lg);
+    color: var(--text-color);
+    margin-bottom: var(--spacing-sm);
+}
+
+.empty-state-description {
+    font-size: var(--font-size-base);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .dashboard-content {
+        margin-left: 60px;
+        padding: var(--spacing-md);
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-title {
+        font-size: 1.5rem;
+    }
+    
+    .dashboard-card-value {
+        font-size: 1.5rem;
+    }
+}

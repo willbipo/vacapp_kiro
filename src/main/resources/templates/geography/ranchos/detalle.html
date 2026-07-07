@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${rancho.nombre} + ' - Detalle'">Detalle Rancho</title>
+    <link rel="stylesheet" th:href="@{/css/geography/ranchos.css}" />
+</head>
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <a th:href="@{/geography/ranchos}" class="breadcrumb">← Volver a Ranchos</a>
+                <h1 th:text="${rancho.nombre}">Nombre Rancho</h1>
+                <span class="status-badge" th:classappend="${rancho.status == T(mx.vacapp.geography.internal.domain.model.GeographicStatus).ACTIVE ? 'active' : 'archived'}" 
+                      th:text="${rancho.status}">ACTIVE</span>
+            </div>
+            <div class="actions">
+                <a th:href="@{/geography/ranchos/{id}/editar(id=${rancho.ranchoId})}" class="btn-primary">Editar</a>
+                <button onclick="archivarRancho()" class="btn-danger">Archivar</button>
+            </div>
+        </header>
+
+        <!-- Mensajes Flash -->
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('info')">Información General</button>
+            <button class="tab-btn" onclick="showTab('secciones')">Secciones</button>
+            <button class="tab-btn" onclick="showTab('potreros')">Potreros</button>
+            <button class="tab-btn" onclick="showTab('estadisticas')">Estadísticas</button>
+        </div>
+
+        <!-- Tab: Información General -->
+        <div id="tab-info" class="tab-content active">
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>Datos Básicos</h3>
+                    <div class="info-row">
+                        <span class="label">ID:</span>
+                        <span class="value" th:text="${rancho.ranchoId}">uuid</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Nombre:</span>
+                        <span class="value" th:text="${rancho.nombre}">Nombre</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Descripción:</span>
+                        <span class="value" th:text="${rancho.descripcion ?: 'Sin descripción'}">Descripción</span>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>Superficies</h3>
+                    <div class="info-row">
+                        <span class="label">Superficie Total:</span>
+                        <span class="value" th:text="${#numbers.formatDecimal(rancho.superficieTotal, 0, 'COMMA', 2, 'POINT')} + ' m²'">10,000 m²</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Superficie Usada:</span>
+                        <span class="value" th:text="${#numbers.formatDecimal(rancho.superficieUsada, 0, 'COMMA', 2, 'POINT')} + ' m²'">5,000 m²</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Superficie Disponible:</span>
+                        <span class="value" th:text="${#numbers.formatDecimal(rancho.superficieDisponible, 0, 'COMMA', 2, 'POINT')} + ' m²'">5,000 m²</span>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>Auditoría</h3>
+                    <div class="info-row">
+                        <span class="label">Creado:</span>
+                        <span class="value" th:text="${#temporals.format(rancho.createdAt, 'dd/MM/yyyy HH:mm')}">01/01/2024 10:00</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Actualizado:</span>
+                        <span class="value" th:text="${#temporals.format(rancho.updatedAt, 'dd/MM/yyyy HH:mm')}">01/01/2024 10:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Secciones -->
+        <div id="tab-secciones" class="tab-content">
+            <div class="tab-header">
+                <h2>Secciones del Rancho</h2>
+                <a th:href="@{/geography/secciones/nuevo(ranchoId=${rancho.ranchoId})}" class="btn-primary">+ Nueva Sección</a>
+            </div>
+            <div id="secciones-container">
+                <p class="loading">Cargando secciones...</p>
+            </div>
+        </div>
+
+        <!-- Tab: Potreros -->
+        <div id="tab-potreros" class="tab-content">
+            <div class="tab-header">
+                <h2>Potreros del Rancho</h2>
+                <a th:href="@{/geography/potreros/nuevo(ranchoId=${rancho.ranchoId})}" class="btn-primary">+ Nuevo Potrero</a>
+            </div>
+            <div id="potreros-container">
+                <p class="loading">Cargando potreros...</p>
+            </div>
+        </div>
+
+        <!-- Tab: Estadísticas -->
+        <div id="tab-estadisticas" class="tab-content">
+            <h2>Estadísticas del Rancho</h2>
+            <div id="stats-container">
+                <p class="loading">Cargando estadísticas...</p>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const ranchoId = /*[[${rancho.ranchoId}]]*/ 'uuid';
+        const apiBase = '/api/v1/geography';
+
+        // Sistema de Tabs
+        function showTab(tabName) {
+            // Ocultar todos los tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Mostrar tab seleccionado
+            document.getElementById('tab-' + tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            // Cargar datos dinámicamente
+            if (tabName === 'secciones') {
+                cargarSecciones();
+            } else if (tabName === 'potreros') {
+                cargarPotreros();
+            } else if (tabName === 'estadisticas') {
+                cargarEstadisticas();
+            }
+        }
+
+        // Cargar secciones via API REST
+        async function cargarSecciones() {
+            const container = document.getElementById('secciones-container');
+            try {
+                const token = sessionStorage.getItem('vacapp_token');
+                const response = await fetch(`${apiBase}/ranchos/${ranchoId}/secciones`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Error cargando secciones');
+
+                const secciones = await response.json();
+
+                if (secciones.length === 0) {
+                    container.innerHTML = '<p class="empty">No hay secciones registradas.</p>';
+                    return;
+                }
+
+                container.innerHTML = secciones.map(s => `
+                    <div class="item-card">
+                        <h4>${s.nombre}</h4>
+                        <p>Superficie: ${formatNumber(s.superficie)} m²</p>
+                        <a href="/geography/secciones/${s.seccionId}" class="btn-link">Ver Detalle</a>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                container.innerHTML = '<p class="error">Error cargando secciones.</p>';
+            }
+        }
+
+        // Cargar potreros via API REST
+        async function cargarPotreros() {
+            const container = document.getElementById('potreros-container');
+            try {
+                const token = sessionStorage.getItem('vacapp_token');
+                const response = await fetch(`${apiBase}/ranchos/${ranchoId}/potreros`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Error cargando potreros');
+
+                const potreros = await response.json();
+
+                if (potreros.length === 0) {
+                    container.innerHTML = '<p class="empty">No hay potreros registrados.</p>';
+                    return;
+                }
+
+                container.innerHTML = potreros.map(p => `
+                    <div class="item-card">
+                        <h4>${p.nombre}</h4>
+                        <p>Superficie: ${formatNumber(p.superficie)} m²</p>
+                        <p>Ganado: ${p.cattleCount} animales</p>
+                        <a href="/geography/potreros/${p.potreroId}" class="btn-link">Ver Detalle</a>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                container.innerHTML = '<p class="error">Error cargando potreros.</p>';
+            }
+        }
+
+        // Cargar estadísticas via API REST
+        async function cargarEstadisticas() {
+            const container = document.getElementById('stats-container');
+            try {
+                const token = sessionStorage.getItem('vacapp_token');
+                const response = await fetch(`${apiBase}/ranchos/${ranchoId}/estadisticas`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Error cargando estadísticas');
+
+                const stats = await response.json();
+
+                container.innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>Total Secciones</h3>
+                            <p class="stat-value">${stats.totalSecciones}</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Potreros</h3>
+                            <p class="stat-value">${stats.totalPotreros}</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Porcentaje de Uso</h3>
+                            <p class="stat-value">${stats.porcentajeUso.toFixed(2)}%</p>
+                        </div>
+                    </div>
+                `;
+
+            } catch (error) {
+                container.innerHTML = '<p class="error">Error cargando estadísticas.</p>';
+            }
+        }
+
+        // Archivar rancho
+        async function archivarRancho() {
+            if (!confirm('¿Está seguro de archivar este rancho?')) return;
+
+            try {
+                const token = sessionStorage.getItem('vacapp_token');
+                const response = await fetch(`${apiBase}/ranchos/${ranchoId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Rancho archivado exitosamente');
+                    window.location.href = '/geography/ranchos';
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.message);
+                }
+            } catch (error) {
+                alert('Error archivando rancho');
+            }
+        }
+
+        // Formatear números
+        function formatNumber(num) {
+            return new Intl.NumberFormat('es-MX', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            }).format(num);
+        }
+    </script>
+</body>
+</html>

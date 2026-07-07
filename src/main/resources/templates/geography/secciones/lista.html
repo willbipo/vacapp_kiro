@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secciones - Vacapp</title>
+    <link rel="stylesheet" th:href="@{/css/geography/secciones.css}" />
+</head>
+<body>
+    <div class="container">
+        <header class="page-header">
+            <h1>Gestión de Secciones</h1>
+            <div class="actions">
+                <input type="text" id="buscar" placeholder="Buscar sección..." class="search-input" />
+                <a th:href="@{/geography/secciones/nuevo}" class="btn-primary">+ Nueva Sección</a>
+            </div>
+        </header>
+
+        <!-- Mensajes Flash -->
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+        <!-- Grid de Secciones -->
+        <div class="secciones-grid" id="secciones-grid">
+            <div th:each="seccion : ${secciones}" class="seccion-card" th:attr="data-nombre=${seccion.nombre}">
+                <div class="card-header">
+                    <h3 th:text="${seccion.nombre}">Nombre Sección</h3>
+                    <span class="status-badge" th:classappend="${seccion.status == T(mx.vacapp.geography.internal.domain.model.GeographicStatus).ACTIVE ? 'active' : 'archived'}" 
+                          th:text="${seccion.status}">ACTIVE</span>
+                </div>
+                <div class="card-body">
+                    <div class="metric">
+                        <span class="label">Rancho:</span>
+                        <span class="value rancho-link" th:text="${seccion.ranchoId}">ID Rancho</span>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Superficie:</span>
+                        <span class="value" th:text="${#numbers.formatDecimal(seccion.superficie, 0, 'COMMA', 2, 'POINT')} + ' m²'">5,000.00 m²</span>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Superficie Disponible:</span>
+                        <span class="value" th:text="${#numbers.formatDecimal(seccion.superficieDisponible, 0, 'COMMA', 2, 'POINT')} + ' m²'">3,000.00 m²</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" th:style="'width: ' + ${(seccion.superficieUsada / seccion.superficie) * 100} + '%'"></div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a th:href="@{/geography/secciones/{id}(id=${seccion.seccionId})}" class="btn-link">Ver Detalle</a>
+                    <a th:href="@{/geography/secciones/{id}/editar(id=${seccion.seccionId})}" class="btn-link">Editar</a>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${#lists.isEmpty(secciones)}" class="empty-state">
+            <p>No hay secciones registradas.</p>
+            <a th:href="@{/geography/secciones/nuevo}" class="btn-primary">Crear Primera Sección</a>
+        </div>
+    </div>
+
+    <script>
+        // Búsqueda en tiempo real
+        const buscarInput = document.getElementById('buscar');
+        const seccionesGrid = document.getElementById('secciones-grid');
+        let timeoutId;
+
+        buscarInput.addEventListener('input', function() {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                const query = this.value.toLowerCase().trim();
+                const cards = seccionesGrid.querySelectorAll('.seccion-card');
+
+                cards.forEach(card => {
+                    const nombre = card.getAttribute('data-nombre').toLowerCase();
+                    if (nombre.includes(query)) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            }, 300);
+        });
+    </script>
+</body>
+</html>

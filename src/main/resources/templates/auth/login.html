@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vacapp - Inicio de Sesión</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <link rel="stylesheet" th:href="@{/css/login.css}">
+    <link rel="icon" th:href="@{/favicon.ico}">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo-container">
+                <img th:src="@{/logo.svg}" alt="Vacapp Logo" class="logo" onerror="this.style.display='none'">
+                <h1 class="logo-text">Vacapp</h1>
+            </div>
+            <p class="login-subtitle">Gestión Ganadera SaaS</p>
+        </div>
+        
+        <div class="login-card">
+            <h2 class="login-title">Iniciar Sesión</h2>
+            <p class="login-description">Ingresa tus credenciales para acceder al sistema</p>
+            
+            <!-- Formulario de Login -->
+            <form id="formulario-login" class="login-form" novalidate>
+                <!-- Campo Email -->
+                <div class="form-group">
+                    <label for="email" class="form-label">Correo Electrónico</label>
+                    <div class="input-container">
+                        <input 
+                            type="text" 
+                            id="email" 
+                            name="email" 
+                            class="form-input" 
+                            placeholder="usuario@empresa.com" 
+                            autocomplete="email"
+                            required
+                        >
+                        <div class="input-icon">
+                            <span class="icon">📧</span>
+                        </div>
+                    </div>
+                    <div class="error-message" id="email-error" aria-live="polite"></div>
+                </div>
+                
+                <!-- Campo Contraseña -->
+                <div class="form-group">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <div class="input-container">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="form-input" 
+                            placeholder="••••••••" 
+                            autocomplete="current-password"
+                            required
+                        >
+                        <div class="input-icon">
+                            <span class="icon">🔒</span>
+                        </div>
+                        <button 
+                            type="button" 
+                            class="toggle-password" 
+                            id="toggle-password"
+                            aria-label="Mostrar/ocultar contraseña"
+                        >
+                            👁️
+                        </button>
+                    </div>
+                    <div class="error-message" id="password-error" aria-live="polite"></div>
+                </div>
+                
+                <!-- Recordar credenciales (opcional) -->
+                <div class="form-group remember-me">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="remember-me" name="remember-me">
+                        <span class="checkbox-custom"></span>
+                        <span class="checkbox-text">Recordarme en este dispositivo</span>
+                    </label>
+                </div>
+                
+                <!-- Botón de envío -->
+                <div class="form-group">
+                    <button 
+                        type="submit" 
+                        id="submit-button" 
+                        class="login-button"
+                        disabled
+                    >
+                        <span class="button-text">Iniciar Sesión</span>
+                        <span class="spinner" id="login-spinner" style="display: none;">⏳</span>
+                    </button>
+                </div>
+                
+                <!-- Enlaces adicionales -->
+                <div class="login-links">
+                    <a href="#" class="link" id="forgot-password">¿Olvidaste tu contraseña?</a>
+                    <a th:href="@{/contacto}" class="link">¿Necesitas ayuda?</a>
+                </div>
+            </form>
+            
+            <!-- Mensaje de error global -->
+            <div id="error-message" class="global-error-message" style="display: none;" role="alert" aria-live="assertive"></div>
+            
+            <!-- Mensaje de éxito -->
+            <div id="success-message" class="global-success-message" style="display: none;" role="status" aria-live="polite"></div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="login-footer">
+            <p class="footer-text">
+                © 2024 Vacapp - Sistema de Gestión Ganadera
+                <br>
+                <span class="footer-version">Versión 1.0.0</span>
+            </p>
+            <div class="footer-links">
+                <a th:href="@{/terminos}" class="footer-link">Términos de Uso</a>
+                <a th:href="@{/privacidad}" class="footer-link">Política de Privacidad</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Vanilla para manejo del login -->
+    <script>
+        // Estado global del formulario
+        const state = {
+            isSubmitting: false,
+            errors: {},
+            formData: {
+                email: '',
+                password: '',
+                rememberMe: false
+            }
+        };
+
+        // Elementos DOM
+        const elements = {
+            form: document.getElementById('formulario-login'),
+            emailInput: document.getElementById('email'),
+            passwordInput: document.getElementById('password'),
+            togglePasswordBtn: document.getElementById('toggle-password'),
+            rememberMeCheckbox: document.getElementById('remember-me'),
+            submitButton: document.getElementById('submit-button'),
+            emailError: document.getElementById('email-error'),
+            passwordError: document.getElementById('password-error'),
+            errorMessage: document.getElementById('error-message'),
+            successMessage: document.getElementById('success-message'),
+            loginSpinner: document.getElementById('login-spinner'),
+            forgotPasswordLink: document.getElementById('forgot-password')
+        };
+
+        // Validaciones
+        const validators = {
+            email: {
+                validate: (value) => {
+                    if (!value) return 'El correo electrónico es requerido';
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                        return 'Ingresa un correo electrónico válido';
+                    }
+                    return null;
+                },
+                maxLength: 254
+            },
+            password: {
+                validate: (value) => {
+                    if (!value) return 'La contraseña es requerida';
+                    if (value.length < 8) {
+                        return 'La contraseña debe tener al menos 8 caracteres';
+                    }
+                    return null;
+                },
+                maxLength: 128
+            }
+        };
+
+        // Funciones de utilidad
+        const utils = {
+            debounce(func, delay) {
+                let timeoutId;
+                return (...args) => {
+                    clearTimeout(timeoutId);
+                    timeoutId = setTimeout(() => func.apply(this, args), delay);
+                };
+            },
+
+            showError(element, message) {
+                element.textContent = message;
+                element.style.display = message ? 'block' : 'none';
+                element.setAttribute('aria-hidden', !message);
+            },
+
+            showGlobalError(message) {
+                elements.errorMessage.textContent = message;
+                elements.errorMessage.style.display = 'block';
+                elements.successMessage.style.display = 'none';
+            },
+
+            showGlobalSuccess(message) {
+                elements.successMessage.textContent = message;
+                elements.successMessage.style.display = 'block';
+                elements.errorMessage.style.display = 'none';
+            },
+
+            hideGlobalMessages() {
+                elements.errorMessage.style.display = 'none';
+                elements.successMessage.style.display = 'none';
+            },
+
+            updateSubmitButtonState() {
+                const hasErrors = Object.values(state.errors).some(error => error !== null);
+                const hasEmptyFields = !elements.emailInput.value.trim() || !elements.passwordInput.value.trim();
+                
+                elements.submitButton.disabled = hasErrors || hasEmptyFields || state.isSubmitting;
+            },
+
+            setLoading(isLoading) {
+                state.isSubmitting = isLoading;
+                elements.submitButton.disabled = isLoading;
+                elements.loginSpinner.style.display = isLoading ? 'inline-block' : 'none';
+                
+                const buttonText = elements.submitButton.querySelector('.button-text');
+                buttonText.textContent = isLoading ? 'Autenticando...' : 'Iniciar Sesión';
+            },
+
+            validateField(fieldName, value) {
+                const validator = validators[fieldName];
+                if (!validator) return null;
+                
+                if (value.length > validator.maxLength) {
+                    return `Máximo ${validator.maxLength} caracteres`;
+                }
+                
+                return validator.validate(value);
+            }
+        };
+
+        // Manejo de eventos de entrada
+        const handleEmailInput = utils.debounce((e) => {
+            const value = e.target.value.trim();
+            state.formData.email = value;
+            state.errors.email = utils.validateField('email', value);
+            utils.showError(elements.emailError, state.errors.email);
+            utils.updateSubmitButtonState();
+        }, 300);
+
+        const handlePasswordInput = utils.debounce((e) => {
+            const value = e.target.value;
+            state.formData.password = value;
+            state.errors.password = utils.validateField('password', value);
+            utils.showError(elements.passwordError, state.errors.password);
+            utils.updateSubmitButtonState();
+        }, 300);
+
+        const handleRememberMeChange = (e) => {
+            state.formData.rememberMe = e.target.checked;
+        };
+
+        const handleTogglePassword = () => {
+            const type = elements.passwordInput.type === 'password' ? 'text' : 'password';
+            elements.passwordInput.type = type;
+            elements.togglePasswordBtn.setAttribute(
+                'aria-label', 
+                type === 'password' ? 'Mostrar contraseña' : 'Ocultar contraseña'
+            );
+        };
+
+        // Función principal para enviar el login
+        const handleSubmit = async (e) => {
+            e.preventDefault();
+            utils.hideGlobalMessages();
+
+            // Validación final antes de enviar
+            const finalValidation = {
+                email: utils.validateField('email', state.formData.email),
+                password: utils.validateField('password', state.formData.password)
+            };
+
+            state.errors = finalValidation;
+            utils.showError(elements.emailError, finalValidation.email);
+            utils.showError(elements.passwordError, finalValidation.password);
+
+            if (finalValidation.email || finalValidation.password) {
+                utils.showGlobalError('Por favor, corrige los errores en el formulario');
+                return;
+            }
+
+            // Iniciar proceso de login
+            utils.setLoading(true);
+
+            try {
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=UTF-8',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: state.formData.email,
+                        password: state.formData.password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Error en la autenticación');
+                }
+
+                // Login exitoso
+                if (data.token) {
+                    // Guardar token en sessionStorage
+                    sessionStorage.setItem('vacapp_token', data.token);
+                    
+                    // Si se seleccionó "Recordarme", guardar email en localStorage (opcional)
+                    if (state.formData.rememberMe) {
+                        localStorage.setItem('vacapp_remembered_email', state.formData.email);
+                    } else {
+                        localStorage.removeItem('vacapp_remembered_email');
+                    }
+
+                    // Mostrar mensaje de éxito
+                    utils.showGlobalSuccess('¡Autenticación exitosa! Redirigiendo...');
+                    
+                    // Redirigir al dashboard después de 1 segundo
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    throw new Error('Token no recibido en la respuesta');
+                }
+
+            } catch (error) {
+                // Manejo de errores
+                utils.showGlobalError(error.message || 'Error al conectar con el servidor');
+                
+                // Limpiar formulario en caso de error específico
+                if (error.message.includes('Credenciales inválidas') || 
+                    error.message.includes('Cuenta inactiva') ||
+                    error.message.includes('Cuenta bloqueada')) {
+                    elements.passwordInput.value = '';
+                    state.formData.password = '';
+                    state.errors.password = 'Contraseña incorrecta o cuenta bloqueada';
+                    utils.showError(elements.passwordError, state.errors.password);
+                }
+            } finally {
+                utils.setLoading(false);
+            }
+        };
+
+        // Inicialización de eventos
+        const initialize = () => {
+            // Eventos de entrada
+            elements.emailInput.addEventListener('input', handleEmailInput);
+            elements.passwordInput.addEventListener('input', handlePasswordInput);
+            elements.rememberMeCheckbox.addEventListener('change', handleRememberMeChange);
+            elements.togglePasswordBtn.addEventListener('click', handleTogglePassword);
+            elements.form.addEventListener('submit', handleSubmit);
+            
+            // Evento para "Olvidé mi contraseña"
+            elements.forgotPasswordLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                utils.showGlobalError('Contacta al administrador de tu organización para restablecer la contraseña');
+            });
+
+            // Cargar email recordado si existe
+            const rememberedEmail = localStorage.getItem('vacapp_remembered_email');
+            if (rememberedEmail) {
+                elements.emailInput.value = rememberedEmail;
+                elements.rememberMeCheckbox.checked = true;
+                state.formData.email = rememberedEmail;
+                state.formData.rememberMe = true;
+            }
+
+            // Enfoque inicial en el campo de email
+            elements.emailInput.focus();
+
+            // Validación inicial del botón
+            utils.updateSubmitButtonState();
+        };
+
+        // Inicializar cuando el DOM esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            initialize();
+        }
+
+        // Exponer funciones para debugging (solo en desarrollo)
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            window.loginDebug = {
+                state,
+                elements,
+                validators,
+                utils,
+                handleSubmit
+            };
+        }
+    </script>
+</body>
+</html>

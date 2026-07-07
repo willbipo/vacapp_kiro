@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${potrero.nombre} + ' - Detalle'">Detalle Potrero</title>
+    <link rel="stylesheet" th:href="@{/css/geography/potreros.css}" />
+</head>
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <a th:href="@{/geography/potreros}" class="breadcrumb">← Volver a Potreros</a>
+                <h1 th:text="${potrero.nombre}">Nombre Potrero</h1>
+                <span class="status-badge" th:classappend="${potrero.status == T(mx.vacapp.geography.internal.domain.model.GeographicStatus).ACTIVE ? 'active' : 'archived'}" 
+                      th:text="${potrero.status}">ACTIVE</span>
+            </div>
+            <div class="actions">
+                <a th:href="@{/geography/potreros/{id}/editar(id=${potrero.potreroId})}" class="btn-primary">Editar</a>
+                <button onclick="archivarPotrero()" class="btn-danger">Archivar</button>
+            </div>
+        </header>
+
+        <!-- Mensajes Flash -->
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+        
+        <!-- Warning de ganado asignado -->
+        <div th:if="${cattleWarning}" class="alert alert-warning" th:text="${cattleWarning}"></div>
+
+        <!-- Información del Potrero -->
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>Datos Básicos</h3>
+                <div class="info-row">
+                    <span class="label">ID:</span>
+                    <span class="value" th:text="${potrero.potreroId}">uuid</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Nombre:</span>
+                    <span class="value" th:text="${potrero.nombre}">Nombre</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Rancho:</span>
+                    <a th:href="@{/geography/ranchos/{id}(id=${potrero.ranchoId})}" 
+                       class="value-link" 
+                       th:text="${potrero.ranchoId}">ID Rancho</a>
+                </div>
+                <div class="info-row">
+                    <span class="label">Sección:</span>
+                    <a th:if="${potrero.seccionId != null}" 
+                       th:href="@{/geography/secciones/{id}(id=${potrero.seccionId})}" 
+                       class="value-link" 
+                       th:text="${potrero.seccionId}">ID Sección</a>
+                    <span th:if="${potrero.seccionId == null}" class="value text-muted">-- Vinculado Directamente al Rancho --</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Descripción:</span>
+                    <span class="value" th:text="${potrero.descripcion ?: 'Sin descripción'}">Descripción</span>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Superficie y Ganado</h3>
+                <div class="info-row">
+                    <span class="label">Superficie:</span>
+                    <span class="value" th:text="${#numbers.formatDecimal(potrero.superficie, 0, 'COMMA', 2, 'POINT')} + ' m²'">1,000 m²</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Ganado Asignado:</span>
+                    <span class="value cattle-count" 
+                          th:classappend="${potrero.cattleCount > 0 ? 'has-cattle' : 'no-cattle'}" 
+                          th:text="${potrero.cattleCount} + ' animales'">0 animales</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Densidad:</span>
+                    <span class="value" th:text="${potrero.cattleCount > 0 ? #numbers.formatDecimal(potrero.superficie / potrero.cattleCount, 0, 'COMMA', 2, 'POINT') + ' m² por animal' : 'N/A'}">N/A</span>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Auditoría</h3>
+                <div class="info-row">
+                    <span class="label">Creado:</span>
+                    <span class="value" th:text="${#temporals.format(potrero.createdAt, 'dd/MM/yyyy HH:mm')}">01/01/2024 10:00</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Actualizado:</span>
+                    <span class="value" th:text="${#temporals.format(potrero.updatedAt, 'dd/MM/yyyy HH:mm')}">01/01/2024 10:00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Listado de Ganado (Mock - futuro módulo cattle) -->
+        <div class="section-content" th:if="${potrero.cattleCount > 0}">
+            <div class="section-header">
+                <h2>Ganado en este Potrero</h2>
+                <span class="badge-count" th:text="${potrero.cattleCount}">0</span>
+            </div>
+            <div id="ganado-container">
+                <p class="info-message">La integración con el módulo de ganado se implementará en el futuro.</p>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const potreroId = /*[[${potrero.potreroId}]]*/ 'uuid';
+        const cattleCount = /*[[${potrero.cattleCount}]]*/ 0;
+        const apiBase = '/api/v1/geography';
+
+        // Archivar potrero
+        async function archivarPotrero() {
+            if (cattleCount > 0) {
+                alert('No se puede archivar un potrero con ganado asignado. Traslade el ganado primero.');
+                return;
+            }
+
+            if (!confirm('¿Está seguro de archivar este potrero?')) return;
+
+            try {
+                const token = sessionStorage.getItem('vacapp_token');
+                const response = await fetch(`${apiBase}/potreros/${potreroId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Potrero archivado exitosamente');
+                    window.location.href = '/geography/potreros';
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.message);
+                }
+            } catch (error) {
+                alert('Error archivando potrero');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,321 @@
+/**
+ * global.css - Estilos globales de Vacapp
+ * Variables CSS custom, reset y utilidades compartidas
+ */
+
+/* ==================== Variables CSS ==================== */
+:root {
+    /* Colores principales */
+    --primary: #10b981;
+    --primary-dark: #059669;
+    --primary-light: #d1fae5;
+    
+    /* Colores de fondo */
+    --background: #f9fafb;
+    --surface: #f3f4f6;
+    --white: #ffffff;
+    
+    /* Colores de texto */
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --text-disabled: #9ca3af;
+    
+    /* Colores de bordes */
+    --border: #e5e7eb;
+    --border-dark: #d1d5db;
+    
+    /* Colores de estado */
+    --success: #10b981;
+    --success-light: #d1fae5;
+    --success-dark: #065f46;
+    
+    --error: #ef4444;
+    --error-light: #fee2e2;
+    --error-dark: #991b1b;
+    
+    --warning: #f59e0b;
+    --warning-light: #fef3c7;
+    --warning-dark: #92400e;
+    
+    --info: #3b82f6;
+    --info-light: #dbeafe;
+    --info-dark: #1e40af;
+    
+    /* Sombras */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+    
+    /* Espaciado */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    
+    /* Bordes redondeados */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-full: 9999px;
+    
+    /* Tipografía */
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'SF Mono', Monaco, Consolas, 'Courier New', monospace;
+    
+    /* Transiciones */
+    --transition-fast: 150ms ease-in-out;
+    --transition-normal: 200ms ease-in-out;
+    --transition-slow: 300ms ease-in-out;
+}
+
+/* ==================== Reset CSS ==================== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+    background-color: var(--background);
+}
+
+/* Resetear estilos de elementos */
+h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+p {
+    margin: 0;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+input,
+textarea,
+select {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+ul, ol {
+    list-style: none;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* ==================== Utilidades Globales ==================== */
+.hidden {
+    display: none !important;
+}
+
+.visible {
+    display: block !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-left {
+    text-align: left;
+}
+
+.font-bold {
+    font-weight: 600;
+}
+
+.font-normal {
+    font-weight: 400;
+}
+
+.text-primary {
+    color: var(--text-primary);
+}
+
+.text-secondary {
+    color: var(--text-secondary);
+}
+
+.text-success {
+    color: var(--success);
+}
+
+.text-error {
+    color: var(--error);
+}
+
+.text-warning {
+    color: var(--warning);
+}
+
+/* ==================== Layout Helpers ==================== */
+.container {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-lg);
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.gap-sm {
+    gap: var(--spacing-sm);
+}
+
+.gap-md {
+    gap: var(--spacing-md);
+}
+
+.gap-lg {
+    gap: var(--spacing-lg);
+}
+
+/* ==================== Botones Base ==================== */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    white-space: nowrap;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ==================== Inputs Base ==================== */
+.input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    transition: border-color var(--transition-normal);
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.input:disabled {
+    background-color: var(--surface);
+    cursor: not-allowed;
+}
+
+.input::placeholder {
+    color: var(--text-disabled);
+}
+
+/* ==================== Cards ==================== */
+.card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: var(--spacing-xl);
+}
+
+/* ==================== Mensajes de Estado ==================== */
+.alert {
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.alert-success {
+    background: var(--success-light);
+    border: 1px solid var(--success);
+    color: var(--success-dark);
+}
+
+.alert-error {
+    background: var(--error-light);
+    border: 1px solid var(--error);
+    color: var(--error-dark);
+}
+
+.alert-warning {
+    background: var(--warning-light);
+    border: 1px solid var(--warning);
+    color: var(--warning-dark);
+}
+
+.alert-info {
+    background: var(--info-light);
+    border: 1px solid var(--info);
+    color: var(--info-dark);
+}
+
+/* ==================== Responsividad ==================== */
+@media (max-width: 768px) {
+    :root {
+        font-size: 14px;
+    }
+    
+    .container {
+        padding: 0 var(--spacing-md);
+    }
+}

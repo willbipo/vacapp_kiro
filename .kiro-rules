@@ -1,0 +1,5 @@
+# Reglas de Eficiencia y Optimización de Tokens (Ponytail Style)
+- Antes de escribir código, pregúntate: ¿Este método ya existe en otro módulo?
+- ¿Puedo resolverlo usando tipos nativos de Java (como un Record) o librerías ya presentes en el pom.xml?
+- No generes clases abstractas ni interfaces si una implementación directa y simple cumple el requerimiento.
+- PRIORIDAD: Mantén el código DRY (Don't Repeat Yourself) respetando los límites de Spring Modulith. No expongas beans internos si no es necesario.

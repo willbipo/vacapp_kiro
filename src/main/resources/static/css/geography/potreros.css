@@ -1,0 +1,170 @@
+/* 
+ * Estilos para vistas de Potreros
+ * Importa estilos base de ranchos y añade personalizaciones
+ */
+
+@import url('./ranchos.css');
+
+/* Ajustes específicos para Potreros */
+.potrero-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--color-success);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.potrero-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+/* Tabla de Potreros */
+.table-container {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-top: var(--spacing-lg);
+}
+
+.potreros-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.potreros-table thead {
+    background-color: var(--bg-header);
+}
+
+.potreros-table th {
+    padding: var(--spacing-md);
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.potreros-table td {
+    padding: var(--spacing-md);
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.potreros-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.potreros-table tbody tr:hover {
+    background-color: var(--bg-main);
+}
+
+.table-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+
+.table-link:hover {
+    text-decoration: underline;
+}
+
+.text-muted {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Badge de ganado */
+.cattle-badge {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.cattle-badge.has-cattle {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.cattle-badge.no-cattle {
+    background-color: var(--bg-header);
+    color: var(--text-muted);
+}
+
+/* Acciones en tabla */
+.actions-cell {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.btn-sm {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.75rem;
+}
+
+/* Ganado en vista de detalle */
+.cattle-count {
+    font-weight: 700;
+    font-size: 1.125rem;
+}
+
+.cattle-count.has-cattle {
+    color: var(--color-success);
+}
+
+.cattle-count.no-cattle {
+    color: var(--text-muted);
+}
+
+/* Badge contador */
+.badge-count {
+    display: inline-block;
+    background-color: var(--color-primary);
+    color: white;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Selectores en cascada */
+#seccionId {
+    position: relative;
+}
+
+#seccionId option[disabled] {
+    color: var(--text-muted);
+}
+
+/* Responsive para tabla */
+@media (max-width: 768px) {
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .potreros-table {
+        min-width: 800px;
+    }
+    
+    .actions-cell {
+        flex-direction: column;
+    }
+}
+
+/* Estilos para warning de ganado */
+.alert-warning {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.alert-warning::before {
+    content: "⚠️";
+    font-size: 1.25rem;
+}

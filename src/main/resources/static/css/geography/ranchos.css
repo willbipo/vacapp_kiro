@@ -1,0 +1,512 @@
+/* 
+ * Estilos para vistas de Ranchos
+ * CSS Vanilla con variables custom - Sin preprocesadores
+ */
+
+:root {
+    /* Colores principales */
+    --color-primary: #2563eb;
+    --color-primary-hover: #1d4ed8;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+    --color-info: #3b82f6;
+    
+    /* Colores de fondo */
+    --bg-main: #f9fafb;
+    --bg-card: #ffffff;
+    --bg-header: #f3f4f6;
+    
+    /* Colores de texto */
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --text-muted: #9ca3af;
+    
+    /* Bordes y sombras */
+    --border-color: #e5e7eb;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    
+    /* Espaciado */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    
+    /* Bordes redondeados */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+}
+
+/* Reset y estilos base */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+/* Container principal */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-xl);
+}
+
+/* Page Header */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+.page-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.breadcrumb {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    display: inline-block;
+    margin-bottom: var(--spacing-sm);
+}
+
+.breadcrumb:hover {
+    text-decoration: underline;
+}
+
+.actions {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+
+/* Search Input */
+.search-input {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    min-width: 250px;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Botones */
+.btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: var(--color-primary-hover);
+}
+
+.btn-secondary {
+    background-color: var(--bg-header);
+    color: var(--text-primary);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+    background-color: var(--border-color);
+}
+
+.btn-danger {
+    background-color: var(--color-danger);
+    color: white;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-danger:hover {
+    background-color: #dc2626;
+}
+
+.btn-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+/* Alertas */
+.alert {
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.alert-success {
+    background-color: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+}
+
+.alert-error {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
+.alert-warning {
+    background-color: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+}
+
+/* Grid de Ranchos (Cards) */
+.ranchos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.rancho-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.rancho-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.card-header h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.status-badge {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.active {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.archived {
+    background-color: var(--bg-header);
+    color: var(--text-muted);
+}
+
+.card-body {
+    margin-bottom: var(--spacing-md);
+}
+
+.metric {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.875rem;
+}
+
+.metric .label {
+    color: var(--text-secondary);
+}
+
+.metric .value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.metric .percentage {
+    color: var(--color-success);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: var(--bg-header);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-top: var(--spacing-sm);
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: var(--color-success);
+    transition: width 0.3s;
+}
+
+.card-footer {
+    display: flex;
+    gap: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+
+/* Paginación */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+}
+
+.page-link {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+
+.page-link:hover:not(.disabled) {
+    background-color: var(--bg-header);
+}
+
+.page-link.disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.page-info {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: var(--spacing-sm);
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: var(--spacing-lg);
+}
+
+.tab-btn {
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: -2px;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.tab-btn:hover {
+    color: var(--color-primary);
+}
+
+.tab-btn.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Info Grid */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.info-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+}
+
+.info-card h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    color: var(--text-primary);
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.875rem;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-row .label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.info-row .value {
+    color: var(--text-primary);
+}
+
+/* Formularios */
+.form-container {
+    max-width: 600px;
+    margin: 0 auto;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+}
+
+.form-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-family: inherit;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.error-message {
+    display: block;
+    color: var(--color-danger);
+    font-size: 0.75rem;
+    margin-top: var(--spacing-xs);
+}
+
+.help-text {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    margin-top: var(--spacing-xs);
+}
+
+.form-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+}
+
+/* Estados de carga */
+.loading,
+.empty,
+.error {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: var(--spacing-md);
+    }
+    
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .ranchos-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .form-container {
+        padding: var(--spacing-md);
+    }
+}

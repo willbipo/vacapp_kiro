@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- 
+        Fragmento reutilizable: Card para mostrar entidad geográfica (Rancho, Sección, Potrero).
+        
+        Parámetros:
+        - entity: objeto con campos (id, nombre, superficie, superficieDisponible, status)
+        - type: tipo de entidad ('rancho', 'seccion', 'potrero')
+        - showLink: boolean para mostrar enlace "Ver Detalle"
+    -->
+    <div th:fragment="geo-card(entity, type, showLink)" class="geo-card" th:attr="data-type=${type}">
+        <div class="geo-card-header">
+            <h3 th:text="${entity.nombre}">Nombre Entidad</h3>
+            <span class="geo-card-type" th:text="${type}">Tipo</span>
+            <span class="status-badge" 
+                  th:classappend="${entity.status.name() == 'ACTIVE' ? 'active' : 'archived'}" 
+                  th:text="${entity.status}">ACTIVE</span>
+        </div>
+
+        <div class="geo-card-body">
+            <!-- Superficie Total -->
+            <div class="geo-metric">
+                <span class="geo-metric-label">Superficie:</span>
+                <span class="geo-metric-value" th:text="${#numbers.formatDecimal(entity.superficie ?: entity.superficieTotal, 0, 'COMMA', 2, 'POINT')} + ' m²'">0.00 m²</span>
+            </div>
+
+            <!-- Superficie Disponible (si aplica) -->
+            <div class="geo-metric" th:if="${entity.superficieDisponible != null}">
+                <span class="geo-metric-label">Disponible:</span>
+                <span class="geo-metric-value" th:text="${#numbers.formatDecimal(entity.superficieDisponible, 0, 'COMMA', 2, 'POINT')} + ' m²'">0.00 m²</span>
+            </div>
+
+            <!-- Porcentaje de Uso -->
+            <div class="geo-metric" th:if="${entity.superficieUsada != null and entity.superficieTotal != null}">
+                <span class="geo-metric-label">Uso:</span>
+                <span class="geo-metric-value percentage" 
+                      th:text="${#numbers.formatDecimal((entity.superficieUsada / entity.superficieTotal) * 100, 0, 2)} + '%'">0.00%</span>
+            </div>
+
+            <!-- Barra de progreso (solo si tiene superficie usada) -->
+            <div class="geo-progress-bar" th:if="${entity.superficieUsada != null and entity.superficieTotal != null}">
+                <div class="geo-progress-fill" 
+                     th:style="'width: ' + ${(entity.superficieUsada / entity.superficieTotal) * 100} + '%'"></div>
+            </div>
+
+            <!-- Ganado (solo para potreros) -->
+            <div class="geo-metric" th:if="${type == 'potrero' and entity.cattleCount != null}">
+                <span class="geo-metric-label">Ganado:</span>
+                <span class="geo-metric-value cattle" 
+                      th:classappend="${entity.cattleCount > 0 ? 'has-cattle' : 'no-cattle'}" 
+                      th:text="${entity.cattleCount} + ' animales'">0 animales</span>
+            </div>
+        </div>
+
+        <div class="geo-card-footer" th:if="${showLink}">
+            <a th:href="@{/geography/{type}s/{id}(type=${type},id=${type == 'rancho' ? entity.ranchoId : (type == 'seccion' ? entity.seccionId : entity.potreroId)})}" 
+               class="geo-card-link">Ver Detalle →</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${isEdit ? 'Editar Rancho' : 'Nuevo Rancho'}">Formulario Rancho</title>
+    <link rel="stylesheet" th:href="@{/css/geography/ranchos.css}" />
+</head>
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <a th:href="@{/geography/ranchos}" class="breadcrumb">← Volver a Ranchos</a>
+                <h1 th:text="${isEdit ? 'Editar Rancho' : 'Nuevo Rancho'}">Formulario</h1>
+            </div>
+        </header>
+
+        <!-- Mensajes de error globales -->
+        <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}"></div>
+
+        <!-- Formulario -->
+        <div class="form-container">
+            <form th:action="${isEdit ? '/geography/ranchos/' + ranchoForm.ranchoId : '/geography/ranchos'}" 
+                  method="post" 
+                  th:object="${ranchoForm}" 
+                  id="rancho-form">
+                
+                <!-- Nombre -->
+                <div class="form-group">
+                    <label for="nombre">Nombre del Rancho *</label>
+                    <input type="text" 
+                           id="nombre" 
+                           th:field="*{nombre}" 
+                           required 
+                           minlength="2" 
+                           maxlength="100" 
+                           placeholder="Ej: Rancho Los Álamos"
+                           class="form-control" />
+                    <span class="error-message" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}">Error</span>
+                </div>
+
+                <!-- Superficie Total -->
+                <div class="form-group">
+                    <label for="superficieTotal">Superficie Total (m²) *</label>
+                    <input type="number" 
+                           id="superficieTotal" 
+                           th:field="*{superficieTotal}" 
+                           required 
+                           min="0.01" 
+                           max="999999999.99" 
+                           step="0.01" 
+                           placeholder="Ej: 10000.00"
+                           class="form-control" />
+                    <span class="error-message" th:if="${#fields.hasErrors('superficieTotal')}" th:errors="*{superficieTotal}">Error</span>
+                    <small class="help-text">Ingrese la superficie en metros cuadrados (m²)</small>
+                </div>
+
+                <!-- Descripción -->
+                <div class="form-group">
+                    <label for="descripcion">Descripción (Opcional)</label>
+                    <textarea id="descripcion" 
+                              th:field="*{descripcion}" 
+                              maxlength="500" 
+                              rows="4" 
+                              placeholder="Descripción del rancho..."
+                              class="form-control"></textarea>
+                    <span class="error-message" th:if="${#fields.hasErrors('descripcion')}" th:errors="*{descripcion}">Error</span>
+                    <small class="help-text" id="char-count">0 / 500 caracteres</small>
+                </div>
+
+                <!-- Botones -->
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <span th:text="${isEdit ? 'Actualizar Rancho' : 'Crear Rancho'}">Guardar</span>
+                    </button>
+                    <a th:href="@{/geography/ranchos}" class="btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Contador de caracteres para descripción
+        const descripcionTextarea = document.getElementById('descripcion');
+        const charCount = document.getElementById('char-count');
+
+        descripcionTextarea.addEventListener('input', function() {
+            const length = this.value.length;
+            charCount.textContent = `${length} / 500 caracteres`;
+            
+            if (length > 500) {
+                charCount.classList.add('error');
+            } else {
+                charCount.classList.remove('error');
+            }
+        });
+
+        // Actualizar contador al cargar (para modo edición)
+        window.addEventListener('DOMContentLoaded', function() {
+            const length = descripcionTextarea.value.length;
+            charCount.textContent = `${length} / 500 caracteres`;
+        });
+
+        // Validación adicional antes de enviar
+        document.getElementById('rancho-form').addEventListener('submit', function(e) {
+            const nombre = document.getElementById('nombre').value.trim();
+            const superficie = parseFloat(document.getElementById('superficieTotal').value);
+
+            if (nombre.length < 2) {
+                e.preventDefault();
+                alert('El nombre debe tener al menos 2 caracteres');
+                return;
+            }
+
+            if (superficie <= 0) {
+                e.preventDefault();
+                alert('La superficie debe ser mayor que 0');
+                return;
+            }
+
+            if (superficie > 999999999.99) {
+                e.preventDefault();
+                alert('La superficie no puede exceder 999,999,999.99 m²');
+                return;
+            }
+        });
+
+        // Formatear input de superficie con separador de miles
+        const superficieInput = document.getElementById('superficieTotal');
+        superficieInput.addEventListener('blur', function() {
+            if (this.value) {
+                const num = parseFloat(this.value);
+                if (!isNaN(num)) {
+                    this.value = num.toFixed(2);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

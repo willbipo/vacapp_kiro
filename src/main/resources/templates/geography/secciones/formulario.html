@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${isEdit ? 'Editar Sección' : 'Nueva Sección'}">Formulario Sección</title>
+    <link rel="stylesheet" th:href="@{/css/geography/secciones.css}" />
+</head>
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <a th:href="@{/geography/secciones}" class="breadcrumb">← Volver a Secciones</a>
+                <h1 th:text="${isEdit ? 'Editar Sección' : 'Nueva Sección'}">Formulario</h1>
+            </div>
+        </header>
+
+        <!-- Mensajes de error globales -->
+        <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}"></div>
+
+        <!-- Formulario -->
+        <div class="form-container">
+            <form th:action="${isEdit ? '/geography/secciones/' + seccionForm.seccionId : '/geography/secciones'}" 
+                  method="post" 
+                  th:object="${seccionForm}" 
+                  id="seccion-form">
+                
+                <!-- Selector de Rancho -->
+                <div class="form-group">
+                    <label for="ranchoId">Rancho *</label>
+                    <select id="ranchoId" 
+                            th:field="*{ranchoId}" 
+                            required 
+                            class="form-control"
+                            th:disabled="${isEdit}">
+                        <option value="">-- Seleccione un rancho --</option>
+                        <option th:each="rancho : ${ranchos}" 
+                                th:value="${rancho.ranchoId}" 
+                                th:text="${rancho.nombre}">Rancho</option>
+                    </select>
+                    <span class="error-message" th:if="${#fields.hasErrors('ranchoId')}" th:errors="*{ranchoId}">Error</span>
+                    <small class="help-text" th:if="${isEdit}">No se puede cambiar el rancho en modo edición</small>
+                </div>
+
+                <!-- Nombre -->
+                <div class="form-group">
+                    <label for="nombre">Nombre de la Sección *</label>
+                    <input type="text" 
+                           id="nombre" 
+                           th:field="*{nombre}" 
+                           required 
+                           minlength="2" 
+                           maxlength="100" 
+                           placeholder="Ej: Sección Norte"
+                           class="form-control" />
+                    <span class="error-message" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}">Error</span>
+                </div>
+
+                <!-- Superficie -->
+                <div class="form-group">
+                    <label for="superficie">Superficie (m²) *</label>
+                    <input type="number" 
+                           id="superficie" 
+                           th:field="*{superficie}" 
+                           required 
+                           min="0.01" 
+                           max="999999999.99" 
+                           step="0.01" 
+                           placeholder="Ej: 5000.00"
+                           class="form-control" />
+                    <span class="error-message" th:if="${#fields.hasErrors('superficie')}" th:errors="*{superficie}">Error</span>
+                    <small class="help-text">La suma de superficies de secciones no debe exceder la superficie del rancho</small>
+                </div>
+
+                <!-- Descripción -->
+                <div class="form-group">
+                    <label for="descripcion">Descripción (Opcional)</label>
+                    <textarea id="descripcion" 
+                              th:field="*{descripcion}" 
+                              maxlength="500" 
+                              rows="4" 
+                              placeholder="Descripción de la sección..."
+                              class="form-control"></textarea>
+                    <span class="error-message" th:if="${#fields.hasErrors('descripcion')}" th:errors="*{descripcion}">Error</span>
+                    <small class="help-text" id="char-count">0 / 500 caracteres</small>
+                </div>
+
+                <!-- Botones -->
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <span th:text="${isEdit ? 'Actualizar Sección' : 'Crear Sección'}">Guardar</span>
+                    </button>
+                    <a th:href="@{/geography/secciones}" class="btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Contador de caracteres
+        const descripcionTextarea = document.getElementById('descripcion');
+        const charCount = document.getElementById('char-count');
+
+        descripcionTextarea.addEventListener('input', function() {
+            const length = this.value.length;
+            charCount.textContent = `${length} / 500 caracteres`;
+        });
+
+        window.addEventListener('DOMContentLoaded', function() {
+            const length = descripcionTextarea.value.length;
+            charCount.textContent = `${length} / 500 caracteres`;
+        });
+
+        // Validación
+        document.getElementById('seccion-form').addEventListener('submit', function(e) {
+            const ranchoId = document.getElementById('ranchoId').value;
+            const nombre = document.getElementById('nombre').value.trim();
+            const superficie = parseFloat(document.getElementById('superficie').value);
+
+            if (!ranchoId) {
+                e.preventDefault();
+                alert('Debe seleccionar un rancho');
+                return;
+            }
+
+            if (nombre.length < 2) {
+                e.preventDefault();
+                alert('El nombre debe tener al menos 2 caracteres');
+                return;
+            }
+
+            if (superficie <= 0) {
+                e.preventDefault();
+                alert('La superficie debe ser mayor que 0');
+                return;
+            }
+        });
+    </script>
+</body>
+</html>

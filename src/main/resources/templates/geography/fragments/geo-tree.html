@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- 
+        Fragmento reutilizable: Árbol jerárquico expandible (Rancho → Secciones → Potreros).
+        
+        Parámetros:
+        - ranchoId: UUID del rancho raíz
+        - ranchoNombre: nombre del rancho
+    -->
+    <div th:fragment="geo-tree(ranchoId, ranchoNombre)" class="geo-tree" th:attr="data-rancho-id=${ranchoId}">
+        <!-- Nodo raíz: Rancho -->
+        <div class="geo-tree-node rancho-node">
+            <button class="geo-tree-toggle" onclick="toggleNode(this)">
+                <span class="icon-expand">▶</span>
+                <span class="icon-collapse" style="display:none;">▼</span>
+            </button>
+            <span class="geo-tree-icon">🏠</span>
+            <a th:href="@{/geography/ranchos/{id}(id=${ranchoId})}" 
+               class="geo-tree-label" 
+               th:text="${ranchoNombre}">Nombre Rancho</a>
+        </div>
+
+        <!-- Contenedor de hijos (Secciones y Potreros) -->
+        <div class="geo-tree-children" style="display:none;">
+            <div id="tree-loading" class="tree-loading">Cargando...</div>
+            <div id="tree-secciones" class="tree-secciones"></div>
+            <div id="tree-potreros-directos" class="tree-potreros-directos"></div>
+        </div>
+    </div>
+
+    <!-- Script integrado para funcionalidad del árbol -->
+    <script th:inline="javascript">
+        const ranchoId = /*[[${ranchoId}]]*/ 'uuid';
+        const apiBase = '/api/v1/geography';
+
+        // Toggle de nodos del árbol
+        function toggleNode(button) {
+            const node = button.parentElement;
+            const children = node.nextElementSibling;
+            const iconExpand = button.querySelector('.icon-expand');
+            const iconCollapse = button.querySelector('.icon-collapse');
+
+            if (children.style.display === 'none') {
+                children.style.display = 'block';
+                iconExpand.style.display = 'none';
+                iconCollapse.style.display = 'inline';
+
+                // Cargar datos si aún no se han cargado
+                if (!children.dataset.loaded) {
+                    cargarHijos(ranchoId);
+                    children.dataset.loaded = 'true';
+                }
+            } else {
+                children.style.display = 'none';
+                iconExpand.style.display = 'inline';
+                iconCollapse.style.display = 'none';
+            }
+        }
+
+        // Cargar secciones y potreros del rancho
+        async function cargarHijos(ranchoId) {
+            const loading = document.getElementById('tree-loading');
+            const seccionesContainer = document.getElementById('tree-secciones');
+            const potrerosDirectosContainer = document.getElementById('tree-potreros-directos');
+
+            try {
+                const token = sessionStorage.getItem('vacapp_token');
+
+                // Cargar secciones
+                const seccionesResponse = await fetch(`${apiBase}/ranchos/${ranchoId}/secciones`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (seccionesResponse.ok) {
+                    const secciones = await seccionesResponse.json();
+                    
+                    if (secciones.length > 0) {
+                        seccionesContainer.innerHTML = secciones.map(s => `
+                            <div class="geo-tree-node seccion-node">
+                                <button class="geo-tree-toggle" onclick="toggleSeccionPotreros('${s.seccionId}', this)">
+                                    <span class="icon-expand">▶</span>
+                                    <span class="icon-collapse" style="display:none;">▼</span>
+                                </button>
+                                <span class="geo-tree-icon">📂</span>
+                                <a href="/geography/secciones/${s.seccionId}" class="geo-tree-label">${s.nombre}</a>
+                                <span class="geo-tree-meta">${formatNumber(s.superficie)} m²</span>
+                            </div>
+                            <div class="geo-tree-children" style="display:none;" data-seccion-id="${s.seccionId}"></div>
+                        `).join('');
+                    }
+                }
+
+                // Cargar potreros directos (sin sección)
+                const potrerosResponse = await fetch(`${apiBase}/ranchos/${ranchoId}/potreros`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (potrerosResponse.ok) {
+                    const potreros = await potrerosResponse.json();
+                    const potrerosDirectos = potreros.filter(p => !p.seccionId);
+
+                    if (potrerosDirectos.length > 0) {
+                        potrerosDirectosContainer.innerHTML = potrerosDirectos.map(p => `
+                            <div class="geo-tree-node potrero-node">
+                                <span class="geo-tree-spacer"></span>
+                                <span class="geo-tree-icon">🌾</span>
+                                <a href="/geography/potreros/${p.potreroId}" class="geo-tree-label">${p.nombre}</a>
+                                <span class="geo-tree-meta">${formatNumber(p.superficie)} m² • ${p.cattleCount} 🐄</span>
+                            </div>
+                        `).join('');
+                    }
+                }
+
+                loading.style.display = 'none';
+
+            } catch (error) {
+                loading.textContent = 'Error cargando datos';
+                console.error(error);
+            }
+        }
+
+        // Cargar potreros de una sección
+        async function toggleSeccionPotreros(seccionId, button) {
+            const node = button.parentElement;
+            const children = node.nextElementSibling;
+            const iconExpand = button.querySelector('.icon-expand');
+            const iconCollapse = button.querySelector('.icon-collapse');
+
+            if (children.style.display === 'none') {
+                children.style.display = 'block';
+                iconExpand.style.display = 'none';
+                iconCollapse.style.display = 'inline';
+
+                if (!children.dataset.loaded) {
+                    try {
+                        const token = sessionStorage.getItem('vacapp_token');
+                        const response = await fetch(`${apiBase}/secciones/${seccionId}/potreros`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+
+                        if (response.ok) {
+                            const potreros = await response.json();
+                            
+                            if (potreros.length > 0) {
+                                children.innerHTML = potreros.map(p => `
+                                    <div class="geo-tree-node potrero-node">
+                                        <span class="geo-tree-spacer"></span>
+                                        <span class="geo-tree-icon">🌾</span>
+                                        <a href="/geography/potreros/${p.potreroId}" class="geo-tree-label">${p.nombre}</a>
+                                        <span class="geo-tree-meta">${formatNumber(p.superficie)} m² • ${p.cattleCount} 🐄</span>
+                                    </div>
+                                `).join('');
+                            } else {
+                                children.innerHTML = '<div class="geo-tree-empty">No hay potreros en esta sección</div>';
+                            }
+                        }
+
+                        children.dataset.loaded = 'true';
+
+                    } catch (error) {
+                        children.innerHTML = '<div class="geo-tree-error">Error cargando potreros</div>';
+                    }
+                }
+            } else {
+                children.style.display = 'none';
+                iconExpand.style.display = 'inline';
+                iconCollapse.style.display = 'none';
+            }
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('es-MX', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            }).format(num);
+        }
+    </script>
+</body>
+</html>

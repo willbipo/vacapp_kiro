@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potreros - Vacapp</title>
+    <link rel="stylesheet" th:href="@{/css/geography/potreros.css}" />
+</head>
+<body>
+    <div class="container">
+        <header class="page-header">
+            <h1>Gestión de Potreros</h1>
+            <div class="actions">
+                <input type="text" id="buscar" placeholder="Buscar potrero..." class="search-input" />
+                <a th:href="@{/geography/potreros/nuevo}" class="btn-primary">+ Nuevo Potrero</a>
+            </div>
+        </header>
+
+        <!-- Mensajes Flash -->
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+        <!-- Tabla de Potreros -->
+        <div class="table-container">
+            <table class="potreros-table" id="potreros-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Superficie (m²)</th>
+                        <th>Rancho</th>
+                        <th>Sección</th>
+                        <th>Ganado</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="potrero : ${potreros}" th:attr="data-nombre=${potrero.nombre}">
+                        <td th:text="${potrero.nombre}">Nombre Potrero</td>
+                        <td th:text="${#numbers.formatDecimal(potrero.superficie, 0, 'COMMA', 2, 'POINT')}">1,000.00</td>
+                        <td>
+                            <a th:href="@{/geography/ranchos/{id}(id=${potrero.ranchoId})}" 
+                               class="table-link" 
+                               th:text="${potrero.ranchoId}">ID Rancho</a>
+                        </td>
+                        <td>
+                            <a th:if="${potrero.seccionId != null}" 
+                               th:href="@{/geography/secciones/{id}(id=${potrero.seccionId})}" 
+                               class="table-link" 
+                               th:text="${potrero.seccionId}">ID Sección</a>
+                            <span th:if="${potrero.seccionId == null}" class="text-muted">-- Directo --</span>
+                        </td>
+                        <td>
+                            <span class="cattle-badge" 
+                                  th:classappend="${potrero.cattleCount > 0 ? 'has-cattle' : 'no-cattle'}" 
+                                  th:text="${potrero.cattleCount}">0</span>
+                        </td>
+                        <td>
+                            <span class="status-badge" 
+                                  th:classappend="${potrero.status == T(mx.vacapp.geography.internal.domain.model.GeographicStatus).ACTIVE ? 'active' : 'archived'}" 
+                                  th:text="${potrero.status}">ACTIVE</span>
+                        </td>
+                        <td class="actions-cell">
+                            <a th:href="@{/geography/potreros/{id}(id=${potrero.potreroId})}" class="btn-sm btn-link">Detalle</a>
+                            <a th:href="@{/geography/potreros/{id}/editar(id=${potrero.potreroId})}" class="btn-sm btn-link">Editar</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${#lists.isEmpty(potreros)}" class="empty-state">
+            <p>No hay potreros registrados.</p>
+            <a th:href="@{/geography/potreros/nuevo}" class="btn-primary">Crear Primer Potrero</a>
+        </div>
+    </div>
+
+    <script>
+        // Búsqueda en tiempo real en tabla
+        const buscarInput = document.getElementById('buscar');
+        const potrerosTable = document.getElementById('potreros-table');
+        let timeoutId;
+
+        buscarInput.addEventListener('input', function() {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                const query = this.value.toLowerCase().trim();
+                const rows = potrerosTable.querySelectorAll('tbody tr');
+
+                rows.forEach(row => {
+                    const nombre = row.getAttribute('data-nombre').toLowerCase();
+                    if (nombre.includes(query)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            }, 300);
+        });
+    </script>
+</body>
+</html>

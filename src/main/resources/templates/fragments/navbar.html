@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <!-- Navbar Fragment -->
+    <nav th:fragment="navbar" class="navbar">
+        <div class="navbar-content">
+            <div class="navbar-logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="currentColor" opacity="0.1"/>
+                    <path d="M16 8L20 12L16 16L12 12L16 8Z" fill="currentColor"/>
+                    <path d="M16 16L20 20L16 24L12 20L16 16Z" fill="currentColor" opacity="0.6"/>
+                </svg>
+                <span class="navbar-title">Vacapp</span>
+            </div>
+
+            <div class="navbar-user">
+                <div class="user-info">
+                    <span class="user-name" id="navbar-user-name">Usuario</span>
+                    <span class="user-role" id="navbar-user-role">Rol</span>
+                </div>
+                <button class="btn-logout" id="btn-logout" title="Cerrar sesión">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <script>
+            // Script para el navbar (ejecutado inline)
+            (function() {
+                // Obtener información del usuario del token
+                function cargarInfoUsuario() {
+                    const token = sessionStorage.getItem('vacapp_token');
+                    if (!token) return;
+
+                    try {
+                        // Decodificar JWT (sin verificar, solo para mostrar info)
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        
+                        const userName = document.getElementById('navbar-user-name');
+                        const userRole = document.getElementById('navbar-user-role');
+                        
+                        if (userName && payload.name) {
+                            userName.textContent = payload.name;
+                        }
+                        if (userRole && payload.role) {
+                            userRole.textContent = formatearRol(payload.role);
+                        }
+                    } catch (error) {
+                        console.error('Error al decodificar token:', error);
+                    }
+                }
+
+                function formatearRol(rol) {
+                    const roles = {
+                        'ADMIN': 'Administrador',
+                        'MANAGER': 'Gerente',
+                        'VETERINARIAN': 'Veterinario',
+                        'WORKER': 'Trabajador',
+                        'SUPER_ADMIN': 'Super Admin',
+                        'SUPPORT': 'Soporte'
+                    };
+                    return roles[rol] || rol;
+                }
+
+                // Cerrar sesión
+                const btnLogout = document.getElementById('btn-logout');
+                if (btnLogout) {
+                    btnLogout.addEventListener('click', function() {
+                        if (confirm('¿Está seguro de que desea cerrar sesión?')) {
+                            sessionStorage.removeItem('vacapp_token');
+                            window.location.href = '/auth/login';
+                        }
+                    });
+                }
+
+                // Cargar info al cargar el fragment
+                cargarInfoUsuario();
+            })();
+        </script>
+    </nav>
+</body>
+</html>

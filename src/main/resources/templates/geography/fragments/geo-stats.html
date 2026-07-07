@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- 
+        Fragmento reutilizable: Panel de estadísticas con métricas visuales.
+        
+        Parámetros:
+        - stats: objeto con estadísticas (totalSecciones, totalPotreros, superficieTotal, superficieUsada, porcentajeUso, distribucionPorSeccion)
+        - entityType: tipo de entidad ('rancho', 'seccion')
+    -->
+    <div th:fragment="geo-stats(stats, entityType)" class="geo-stats-panel">
+        <!-- Métricas principales -->
+        <div class="geo-stats-grid">
+            <div class="geo-stat-card" th:if="${entityType == 'rancho'}">
+                <div class="geo-stat-icon">📊</div>
+                <div class="geo-stat-content">
+                    <span class="geo-stat-label">Total Secciones</span>
+                    <span class="geo-stat-value" th:text="${stats.totalSecciones}">0</span>
+                </div>
+            </div>
+
+            <div class="geo-stat-card">
+                <div class="geo-stat-icon">🌾</div>
+                <div class="geo-stat-content">
+                    <span class="geo-stat-label">Total Potreros</span>
+                    <span class="geo-stat-value" th:text="${stats.totalPotreros}">0</span>
+                </div>
+            </div>
+
+            <div class="geo-stat-card">
+                <div class="geo-stat-icon">📏</div>
+                <div class="geo-stat-content">
+                    <span class="geo-stat-label">Superficie Total</span>
+                    <span class="geo-stat-value" th:text="${#numbers.formatDecimal(stats.superficieTotal, 0, 'COMMA', 0, 'POINT')} + ' m²'">0 m²</span>
+                </div>
+            </div>
+
+            <div class="geo-stat-card">
+                <div class="geo-stat-icon">✅</div>
+                <div class="geo-stat-content">
+                    <span class="geo-stat-label">Superficie Usada</span>
+                    <span class="geo-stat-value" th:text="${#numbers.formatDecimal(stats.superficieUsada, 0, 'COMMA', 0, 'POINT')} + ' m²'">0 m²</span>
+                </div>
+            </div>
+
+            <div class="geo-stat-card">
+                <div class="geo-stat-icon">📦</div>
+                <div class="geo-stat-content">
+                    <span class="geo-stat-label">Superficie Disponible</span>
+                    <span class="geo-stat-value" th:text="${#numbers.formatDecimal(stats.superficieDisponible, 0, 'COMMA', 0, 'POINT')} + ' m²'">0 m²</span>
+                </div>
+            </div>
+
+            <div class="geo-stat-card highlight">
+                <div class="geo-stat-icon">📈</div>
+                <div class="geo-stat-content">
+                    <span class="geo-stat-label">Porcentaje de Uso</span>
+                    <span class="geo-stat-value percentage" th:text="${#numbers.formatDecimal(stats.porcentajeUso, 0, 2)} + '%'">0.00%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de progreso visual -->
+        <div class="geo-stats-progress">
+            <div class="geo-stats-progress-header">
+                <span>Distribución de Superficie</span>
+                <span th:text="${#numbers.formatDecimal(stats.porcentajeUso, 0, 2)} + '% usado'">0% usado</span>
+            </div>
+            <div class="geo-stats-progress-bar">
+                <div class="geo-stats-progress-fill" 
+                     th:style="'width: ' + ${stats.porcentajeUso} + '%'"
+                     th:classappend="${stats.porcentajeUso > 90 ? 'critical' : (stats.porcentajeUso > 75 ? 'warning' : 'ok')}">
+                </div>
+            </div>
+            <div class="geo-stats-progress-labels">
+                <span>Usado: <strong th:text="${#numbers.formatDecimal(stats.superficieUsada, 0, 'COMMA', 0, 'POINT')} + ' m²'">0 m²</strong></span>
+                <span>Disponible: <strong th:text="${#numbers.formatDecimal(stats.superficieDisponible, 0, 'COMMA', 0, 'POINT')} + ' m²'">0 m²</strong></span>
+            </div>
+        </div>
+
+        <!-- Distribución por Sección (solo para ranchos) -->
+        <div class="geo-stats-distribution" th:if="${entityType == 'rancho' and stats.distribucionPorSeccion != null and !#lists.isEmpty(stats.distribucionPorSeccion)}">
+            <h3>Distribución por Sección</h3>
+            <div class="geo-stats-distribution-list">
+                <div th:each="dist : ${stats.distribucionPorSeccion}" class="geo-stats-distribution-item">
+                    <div class="geo-stats-distribution-header">
+                        <span class="geo-stats-distribution-name" th:text="${dist.nombreSeccion}">Nombre Sección</span>
+                        <span class="geo-stats-distribution-percentage" th:text="${#numbers.formatDecimal(dist.porcentaje, 0, 2)} + '%'">0%</span>
+                    </div>
+                    <div class="geo-stats-distribution-bar">
+                        <div class="geo-stats-distribution-fill" th:style="'width: ' + ${dist.porcentaje} + '%'"></div>
+                    </div>
+                    <div class="geo-stats-distribution-meta">
+                        <span th:text="${#numbers.formatDecimal(dist.superficie, 0, 'COMMA', 0, 'POINT')} + ' m²'">0 m²</span>
+                        <span th:text="${dist.cantidadPotreros} + ' potreros'">0 potreros</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leyenda de colores -->
+        <div class="geo-stats-legend">
+            <div class="geo-stats-legend-item">
+                <span class="geo-stats-legend-color ok"></span>
+                <span class="geo-stats-legend-label">Uso normal (0-75%)</span>
+            </div>
+            <div class="geo-stats-legend-item">
+                <span class="geo-stats-legend-color warning"></span>
+                <span class="geo-stats-legend-label">Uso alto (75-90%)</span>
+            </div>
+            <div class="geo-stats-legend-item">
+                <span class="geo-stats-legend-color critical"></span>
+                <span class="geo-stats-legend-label">Uso crítico (>90%)</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

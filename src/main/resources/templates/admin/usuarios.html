@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios - Vacapp</title>
+    <link rel="stylesheet" th:href="@{/css/global.css}" />
+    <link rel="stylesheet" th:href="@{/css/navbar.css}" />
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}" />
+    <style>
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+            background: var(--background);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .users-table {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--surface);
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        tbody tr:hover {
+            background: var(--surface);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-locked {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .role-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: var(--surface);
+            color: var(--text-secondary);
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+
+        .btn-icon:hover {
+            color: var(--primary);
+        }
+
+        .btn-icon.delete:hover {
+            color: #dc2626;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 2rem;
+        }
+
+        .btn-secondary {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: white;
+            color: var(--text-primary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface);
+        }
+
+        .error-message {
+            padding: 1rem;
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            border-radius: 0.5rem;
+            color: #991b1b;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .pagination button {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: var(--surface);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination span {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Navbar -->
+        <div th:replace="~{fragments/navbar :: navbar}"></div>
+        
+        <!-- Sidebar -->
+        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <h1>Gestión de Usuarios</h1>
+                <button class="btn-primary" id="btn-crear-usuario">
+                    <span>+ Crear Usuario</span>
+                </button>
+            </div>
+
+            <div class="error-message" id="error-global"></div>
+
+            <div class="users-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usuarios-tbody">
+                        <!-- Filas generadas dinámicamente -->
+                    </tbody>
+                </table>
+
+                <div class="pagination">
+                    <button id="btn-prev-page" disabled>Anterior</button>
+                    <span id="pagination-info">Página 1</span>
+                    <button id="btn-next-page">Siguiente</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Crear/Editar Usuario -->
+    <div class="modal" id="modal-usuario">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-titulo">Crear Usuario</h2>
+            </div>
+
+            <div class="error-message" id="error-modal"></div>
+
+            <form id="form-usuario">
+                <input type="hidden" id="usuario-id" />
+
+                <div class="form-group">
+                    <label for="usuario-nombre">Nombre completo *</label>
+                    <input type="text" id="usuario-nombre" required maxlength="100" />
+                </div>
+
+                <div class="form-group">
+                    <label for="usuario-email">Email *</label>
+                    <input type="email" id="usuario-email" required maxlength="255" />
+                </div>
+
+                <div class="form-group">
+                    <label for="usuario-telefono">Teléfono</label>
+                    <input type="tel" id="usuario-telefono" maxlength="20" />
+                </div>
+
+                <div class="form-group" id="password-group">
+                    <label for="usuario-password">Contraseña *</label>
+                    <input type="password" id="usuario-password" minlength="8" />
+                </div>
+
+                <div class="form-group">
+                    <label for="usuario-rol">Rol *</label>
+                    <select id="usuario-rol" required>
+                        <option value="">Seleccionar rol</option>
+                        <option value="ADMIN">Administrador</option>
+                        <option value="MANAGER">Gerente</option>
+                        <option value="VETERINARIAN">Veterinario</option>
+                        <option value="WORKER">Trabajador</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="btn-cancelar">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Estado de la aplicación
+        let usuarios = [];
+        let paginaActual = 1;
+        let totalPaginas = 1;
+        let modoEdicion = false;
+        let usuarioEditandoId = null;
+
+        // Elementos del DOM
+        const tbody = document.getElementById('usuarios-tbody');
+        const modal = document.getElementById('modal-usuario');
+        const modalTitulo = document.getElementById('modal-titulo');
+        const form = document.getElementById('form-usuario');
+        const errorGlobal = document.getElementById('error-global');
+        const errorModal = document.getElementById('error-modal');
+        const btnCrear = document.getElementById('btn-crear-usuario');
+        const btnCancelar = document.getElementById('btn-cancelar');
+        const btnPrevPage = document.getElementById('btn-prev-page');
+        const btnNextPage = document.getElementById('btn-next-page');
+        const paginationInfo = document.getElementById('pagination-info');
+        const passwordGroup = document.getElementById('password-group');
+
+        // Obtener token JWT
+        function getToken() {
+            return sessionStorage.getItem('vacapp_token');
+        }
+
+        // Mostrar error global
+        function mostrarError(mensaje, esModal = false) {
+            const errorElement = esModal ? errorModal : errorGlobal;
+            errorElement.textContent = mensaje;
+            errorElement.classList.add('active');
+            setTimeout(() => errorElement.classList.remove('active'), 5000);
+        }
+
+        // Cargar usuarios
+        async function cargarUsuarios(pagina = 1) {
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = '/auth/login';
+                    return;
+                }
+
+                const response = await fetch(`/api/v1/users?page=${pagina - 1}&size=10`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.status === 401) {
+                    window.location.href = '/auth/login';
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Error al cargar usuarios');
+                }
+
+                const data = await response.json();
+                usuarios = data.users || [];
+                totalPaginas = data.pagination?.totalPages || 1;
+                paginaActual = pagina;
+
+                renderizarUsuarios();
+                actualizarPaginacion();
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('Error al cargar la lista de usuarios');
+            }
+        }
+
+        // Renderizar tabla de usuarios
+        function renderizarUsuarios() {
+            tbody.innerHTML = '';
+
+            if (usuarios.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No hay usuarios registrados</td></tr>';
+                return;
+            }
+
+            usuarios.forEach(usuario => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${usuario.name || ''}</td>
+                    <td>${usuario.email || ''}</td>
+                    <td>${usuario.phone || '-'}</td>
+                    <td><span class="role-badge">${formatearRol(usuario.role)}</span></td>
+                    <td><span class="status-badge status-${usuario.status.toLowerCase()}">${formatearEstado(usuario.status)}</span></td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn-icon" onclick="editarUsuario('${usuario.id}')" title="Editar">
+                                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                            <button class="btn-icon delete" onclick="desactivarUsuario('${usuario.id}')" title="Desactivar">
+                                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Actualizar paginación
+        function actualizarPaginacion() {
+            btnPrevPage.disabled = paginaActual === 1;
+            btnNextPage.disabled = paginaActual === totalPaginas;
+            paginationInfo.textContent = `Página ${paginaActual} de ${totalPaginas}`;
+        }
+
+        // Formatear rol
+        function formatearRol(rol) {
+            const roles = {
+                'ADMIN': 'Administrador',
+                'MANAGER': 'Gerente',
+                'VETERINARIAN': 'Veterinario',
+                'WORKER': 'Trabajador',
+                'SUPER_ADMIN': 'Super Admin',
+                'SUPPORT': 'Soporte'
+            };
+            return roles[rol] || rol;
+        }
+
+        // Formatear estado
+        function formatearEstado(estado) {
+            const estados = {
+                'ACTIVE': 'Activo',
+                'INACTIVE': 'Inactivo',
+                'LOCKED': 'Bloqueado'
+            };
+            return estados[estado] || estado;
+        }
+
+        // Abrir modal para crear
+        function abrirModalCrear() {
+            modoEdicion = false;
+            usuarioEditandoId = null;
+            modalTitulo.textContent = 'Crear Usuario';
+            form.reset();
+            passwordGroup.style.display = 'block';
+            document.getElementById('usuario-password').required = true;
+            errorModal.classList.remove('active');
+            modal.classList.add('active');
+        }
+
+        // Editar usuario
+        window.editarUsuario = async function(id) {
+            try {
+                const token = getToken();
+                const response = await fetch(`/api/v1/users/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al cargar usuario');
+                }
+
+                const usuario = await response.json();
+
+                modoEdicion = true;
+                usuarioEditandoId = id;
+                modalTitulo.textContent = 'Editar Usuario';
+                
+                document.getElementById('usuario-id').value = usuario.id;
+                document.getElementById('usuario-nombre').value = usuario.name;
+                document.getElementById('usuario-email').value = usuario.email;
+                document.getElementById('usuario-telefono').value = usuario.phone || '';
+                document.getElementById('usuario-rol').value = usuario.role;
+                
+                passwordGroup.style.display = 'none';
+                document.getElementById('usuario-password').required = false;
+                
+                errorModal.classList.remove('active');
+                modal.classList.add('active');
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('Error al cargar los datos del usuario');
+            }
+        };
+
+        // Desactivar usuario
+        window.desactivarUsuario = async function(id) {
+            if (!confirm('¿Está seguro de que desea desactivar este usuario?')) {
+                return;
+            }
+
+            try {
+                const token = getToken();
+                const response = await fetch(`/api/v1/users/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al desactivar usuario');
+                }
+
+                await cargarUsuarios(paginaActual);
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('Error al desactivar el usuario');
+            }
+        };
+
+        // Cerrar modal
+        function cerrarModal() {
+            modal.classList.remove('active');
+            form.reset();
+        }
+
+        // Guardar usuario (crear o actualizar)
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const datos = {
+                name: document.getElementById('usuario-nombre').value.trim(),
+                email: document.getElementById('usuario-email').value.trim(),
+                phone: document.getElementById('usuario-telefono').value.trim() || null,
+                role: document.getElementById('usuario-rol').value
+            };
+
+            if (!modoEdicion) {
+                datos.password = document.getElementById('usuario-password').value;
+            }
+
+            try {
+                const token = getToken();
+                const url = modoEdicion ? `/api/v1/users/${usuarioEditandoId}` : '/api/v1/users';
+                const method = modoEdicion ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(datos)
+                });
+
+                if (response.status === 409) {
+                    mostrarError('El email ya está registrado', true);
+                    return;
+                }
+
+                if (response.status === 400) {
+                    const error = await response.json();
+                    const mensaje = error.errors?.[0]?.message || 'Datos inválidos';
+                    mostrarError(mensaje, true);
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Error al guardar usuario');
+                }
+
+                cerrarModal();
+                await cargarUsuarios(paginaActual);
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('Error al guardar el usuario', true);
+            }
+        });
+
+        // Event listeners
+        btnCrear.addEventListener('click', abrirModalCrear);
+        btnCancelar.addEventListener('click', cerrarModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) cerrarModal();
+        });
+
+        btnPrevPage.addEventListener('click', () => {
+            if (paginaActual > 1) {
+                cargarUsuarios(paginaActual - 1);
+            }
+        });
+
+        btnNextPage.addEventListener('click', () => {
+            if (paginaActual < totalPaginas) {
+                cargarUsuarios(paginaActual + 1);
+            }
+        });
+
+        // Cargar usuarios al iniciar
+        cargarUsuarios();
+    </script>
+</body>
+</html>

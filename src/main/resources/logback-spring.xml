@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 
+    Logback Configuration for Vacapp
+    Implements sensitive data redaction for security compliance
+    -->
+
+    <!-- Property definitions -->
+    <property name="LOG_FILE" value="${LOG_FILE:-logs/vacapp.log}"/>
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
+    
+    <!-- Console Appender with Sensitive Data Filtering -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="mx.vacapp.infrastructure.logging.SensitiveDataMaskingLayout">
+                <pattern>${LOG_PATTERN}</pattern>
+                <!-- Sensitive field patterns to redact (mismos patrones que el appender FILE) -->
+                <sensitivePattern>password</sensitivePattern>
+                <sensitivePattern>passwordHash</sensitivePattern>
+                <sensitivePattern>secret</sensitivePattern>
+                <sensitivePattern>token</sensitivePattern>
+                <sensitivePattern>authorization</sensitivePattern>
+                <sensitivePattern>apiKey</sensitivePattern>
+                <sensitivePattern>api_key</sensitivePattern>
+            </layout>
+        </encoder>
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <evaluator class="ch.qos.logback.classic.boolex.OnMarkerEvaluator">
+                <marker>CONFIDENTIAL</marker>
+            </evaluator>
+            <onMismatch>NEUTRAL</onMismatch>
+            <onMatch>DENY</onMatch>
+        </filter>
+    </appender>
+
+    <!-- File Appender with Rolling Policy -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="mx.vacapp.infrastructure.logging.SensitiveDataMaskingLayout">
+                <pattern>${LOG_PATTERN}</pattern>
+                <!-- Sensitive field patterns to redact -->
+                <sensitivePattern>password</sensitivePattern>
+                <sensitivePattern>passwordHash</sensitivePattern>
+                <sensitivePattern>secret</sensitivePattern>
+                <sensitivePattern>token</sensitivePattern>
+                <sensitivePattern>authorization</sensitivePattern>
+                <sensitivePattern>apiKey</sensitivePattern>
+                <sensitivePattern>api_key</sensitivePattern>
+            </layout>
+        </encoder>
+        
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- Daily rollover -->
+            <fileNamePattern>${LOG_FILE}.%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <!-- Keep 30 days of history -->
+            <maxHistory>30</maxHistory>
+            <!-- Total size cap -->
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        
+        <!-- Size-based triggering policy -->
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>10MB</maxFileSize>
+        </triggeringPolicy>
+    </appender>
+
+    <!-- Async Appender for better performance -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="FILE"/>
+    </appender>
+
+    <!-- Security/Audit Appender (separate file for audit logs) -->
+    <appender name="AUDIT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/vacapp-audit.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/vacapp-audit.%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <!-- Keep audit logs for 2 years (730 days) as per requirements -->
+            <maxHistory>730</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Logger for Authentication events (audit) -->
+    <logger name="mx.vacapp.users.internal.application.usecases.auth" level="INFO" additivity="false">
+        <appender-ref ref="AUDIT"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- Logger for User management events (audit) -->
+    <logger name="mx.vacapp.users.internal.application.usecases.user" level="INFO" additivity="false">
+        <appender-ref ref="AUDIT"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- Logger for Security events -->
+    <logger name="org.springframework.security" level="INFO">
+        <appender-ref ref="AUDIT"/>
+    </logger>
+
+    <!-- Development Profile -->
+    <springProfile name="dev">
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+        </root>
+        
+        <logger name="mx.vacapp" level="DEBUG"/>
+        <logger name="org.hibernate.SQL" level="DEBUG"/>
+        <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
+    </springProfile>
+
+    <!-- Test Profile -->
+    <springProfile name="test">
+        <root level="WARN">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        
+        <logger name="mx.vacapp" level="DEBUG"/>
+    </springProfile>
+
+    <!-- Production Profile -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="ASYNC_FILE"/>
+        </root>
+        
+        <logger name="mx.vacapp" level="INFO"/>
+        <logger name="org.springframework.web" level="WARN"/>
+        <logger name="org.springframework.security" level="INFO"/>
+        <logger name="org.hibernate.SQL" level="WARN"/>
+    </springProfile>
+
+    <!-- Default (no profile) -->
+    <springProfile name="default">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+        </root>
+    </springProfile>
+
+</configuration>

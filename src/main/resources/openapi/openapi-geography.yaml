@@ -1,0 +1,895 @@
+openapi: 3.0.3
+info:
+  title: Vacapp Geographic Control API
+  description: API REST para gestión jerárquica de terrenos ganaderos (Rancho → Sección → Potrero)
+  version: 1.0.0
+  contact:
+    name: Vacapp Team
+
+servers:
+  - url: http://localhost:8080
+    description: Servidor de desarrollo local
+
+tags:
+  - name: Ranchos
+    description: Gestión de ranchos (terreno total)
+  - name: Secciones
+    description: Gestión de secciones (divisiones de ranchos)
+  - name: Potreros
+    description: Gestión de potreros (unidades de pastoreo)
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ===== ENDPOINTS DE RANCHOS =====
+  /api/v1/geography/ranchos:
+    post:
+      tags:
+        - Ranchos
+      summary: Crear nuevo rancho
+      operationId: createRancho
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRanchoRequest'
+      responses:
+        '201':
+          description: Rancho creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RanchoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    
+    get:
+      tags:
+        - Ranchos
+      summary: Listar ranchos del tenant
+      operationId: listRanchos
+      parameters:
+        - name: page
+          in: query
+          description: Número de página (0-based)
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Tamaño de página
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Lista de ranchos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RanchoResponse'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  
+  /api/v1/geography/ranchos/{id}:
+    get:
+      tags:
+        - Ranchos
+      summary: Obtener rancho por ID
+      operationId: getRanchoById
+      parameters:
+        - $ref: '#/components/parameters/IdPathParam'
+      responses:
+        '200':
+          description: Rancho encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RanchoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      tags:
+        - Ranchos
+      summary: Actualizar rancho
+      operationId: updateRancho
+      parameters:
+        - $ref: '#/components/parameters/IdPathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRanchoRequest'
+      responses:
+        '200':
+          description: Rancho actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RanchoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      tags:
+        - Ranchos
+      summary: Archivar rancho
+      operationId: archiveRancho
+      parameters:
+        - $ref: '#/components/parameters/IdPathParam'
+      responses:
+        '204':
+          description: Rancho archivado exitosamente
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  
+  /api/v1/geography/ranchos/{id}/estadisticas:
+    get:
+      tags:
+        - Ranchos
+      summary: Obtener estadísticas de un rancho
+      operationId: getRanchoStats
+      parameters:
+        - $ref: '#/components/parameters/IdPathParam'
+      responses:
+        '200':
+          description: Estadísticas del rancho
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RanchoStatsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  
+  # ===== ENDPOINTS DE SECCIONES =====
+  /api/v1/geography/secciones:
+    post:
+      tags:
+        - Secciones
+      summary: Crear nueva sección
+      operationId: createSeccion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSeccionRequest'
+      responses:
+        '201':
+          description: Sección creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeccionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    
+    get:
+      tags:
+        - Secciones
+      summary: Listar secciones del tenant
+      operationId: listSecciones
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Lista de secciones
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SeccionResponse'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  
+  /api/v1/geography/secciones/{id}:
+    get:
+      tags:
+        - Secciones
+      summary: Obtener sección por ID
+      operationId: getSeccionById
+      parameters:
+        - $ref: '#/components/parameters/IdPathParam'
+      responses:
+        '200':
+          description: Sección encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeccionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      tags:
+        - Secciones
+      summary: Actualizar sección
+      operationId: updateSeccion
+      parameters:
+        - $ref: '#/components/parameters/IdPathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSeccionRequest'
+      responses:
+        '200':
+          description: Sección actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeccionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      tags:
+        - Secciones
+      summary: Archivar sección
+      operationId: archiveSeccion
+      parameters:
+        - $ref: '#/components/parameters/IdPathParam'
+      responses:
+        '204':
+          description: Sección archivada exitosamente
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  
+  /api/v1/geography/ranchos/{ranchoId}/secciones:
+    get:
+      tags:
+        - Secciones
+      summary: Listar secciones de un rancho
+      operationId: listSeccionesByRancho
+      parameters:
+        - name: ranchoId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista de secciones del rancho
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SeccionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  
+  # ===== ENDPOINTS DE POTREROS =====
+  /api/v1/geography/potreros:
+    post:
+      tags:
+        - Potreros
+      summary: Crear nuevo potrero
+      operationId: createPotrero
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePotreroRequest'
+      responses:
+        '201':
+          description: Potrero creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PotreroResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    
+    get:
+      tags:
+        - Potreros
+      summary: Listar potreros del tenant
+      operationId: listPotreros
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Lista de potreros
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PotreroResponse'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  
+  /api/v1/geography/potreros/{id}:
+    get:
+      tags:
+        - Potreros
+      summary: Obtener potrero por ID
+      operationId: getPotreroById
+      parameters:
+        - $ref: '#/components/parameters/IdPathParam'
+      responses:
+        '200':
+          description: Potrero encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PotreroResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      tags:
+        - Potreros
+      summary: Actualizar potrero
+      operationId: updatePotrero
+      parameters:
+        - $ref: '#/components/parameters/IdPathParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePotreroRequest'
+      responses:
+        '200':
+          description: Potrero actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PotreroResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      tags:
+        - Potreros
+      summary: Archivar potrero
+      operationId: archivePotrero
+      parameters:
+        - $ref: '#/components/parameters/IdPathParam'
+      responses:
+        '204':
+          description: Potrero archivado exitosamente
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  
+  /api/v1/geography/ranchos/{ranchoId}/potreros:
+    get:
+      tags:
+        - Potreros
+      summary: Listar potreros de un rancho
+      operationId: listPotrerosByRancho
+      parameters:
+        - name: ranchoId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista de potreros del rancho
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PotreroResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  
+  /api/v1/geography/secciones/{seccionId}/potreros:
+    get:
+      tags:
+        - Potreros
+      summary: Listar potreros de una sección
+      operationId: listPotrerosBySeccion
+      parameters:
+        - name: seccionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista de potreros de la sección
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PotreroResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  parameters:
+    IdPathParam:
+      name: id
+      in: path
+      required: true
+      description: UUID del recurso
+      schema:
+        type: string
+        format: uuid
+  
+  schemas:
+    # ===== REQUEST DTOs - RANCHO =====
+    CreateRanchoRequest:
+      type: object
+      required:
+        - nombre
+        - superficieTotal
+      properties:
+        nombre:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Nombre del rancho
+          example: "Rancho El Encino"
+        superficieTotal:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 999999999
+          description: Superficie total en metros cuadrados
+          example: 50000.50
+        descripcion:
+          type: string
+          maxLength: 500
+          description: Descripción opcional del rancho
+          example: "Rancho principal con zona de pastoreo norte"
+    
+    UpdateRanchoRequest:
+      type: object
+      required:
+        - nombre
+        - superficieTotal
+      properties:
+        nombre:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "Rancho El Encino Actualizado"
+        superficieTotal:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 999999999
+          example: 55000.00
+        descripcion:
+          type: string
+          maxLength: 500
+    
+    # ===== REQUEST DTOs - SECCION =====
+    CreateSeccionRequest:
+      type: object
+      required:
+        - nombre
+        - superficie
+        - ranchoId
+      properties:
+        nombre:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "Sección Norte"
+        superficie:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 999999999
+          example: 20000.00
+        ranchoId:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        descripcion:
+          type: string
+          maxLength: 500
+    
+    UpdateSeccionRequest:
+      type: object
+      required:
+        - nombre
+        - superficie
+      properties:
+        nombre:
+          type: string
+          minLength: 2
+          maxLength: 100
+        superficie:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 999999999
+        descripcion:
+          type: string
+          maxLength: 500
+    
+    # ===== REQUEST DTOs - POTRERO =====
+    CreatePotreroRequest:
+      type: object
+      required:
+        - nombre
+        - superficie
+        - ranchoId
+      properties:
+        nombre:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "Potrero A1"
+        superficie:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 999999999
+          example: 5000.00
+        ranchoId:
+          type: string
+          format: uuid
+        seccionId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Opcional - vincular a una sección
+        descripcion:
+          type: string
+          maxLength: 500
+    
+    UpdatePotreroRequest:
+      type: object
+      required:
+        - nombre
+        - superficie
+      properties:
+        nombre:
+          type: string
+          minLength: 2
+          maxLength: 100
+        superficie:
+          type: number
+          format: decimal
+          minimum: 0.01
+          maximum: 999999999
+        descripcion:
+          type: string
+          maxLength: 500
+    
+    # ===== RESPONSE DTOs =====
+    RanchoResponse:
+      type: object
+      properties:
+        ranchoId:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        superficieTotal:
+          type: number
+          format: decimal
+        superficieDisponible:
+          type: number
+          format: decimal
+        superficieUsada:
+          type: number
+          format: decimal
+        porcentajeUso:
+          type: number
+          format: decimal
+          description: Porcentaje de uso (0.00 - 100.00)
+        descripcion:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, ARCHIVED]
+        tenantId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    
+    SeccionResponse:
+      type: object
+      properties:
+        seccionId:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        superficie:
+          type: number
+          format: decimal
+        superficieDisponible:
+          type: number
+          format: decimal
+        superficieUsada:
+          type: number
+          format: decimal
+        ranchoId:
+          type: string
+          format: uuid
+        descripcion:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, ARCHIVED]
+        tenantId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    
+    PotreroResponse:
+      type: object
+      properties:
+        potreroId:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        superficie:
+          type: number
+          format: decimal
+        ranchoId:
+          type: string
+          format: uuid
+        seccionId:
+          type: string
+          format: uuid
+          nullable: true
+        cattleCount:
+          type: integer
+          minimum: 0
+          description: Cantidad de ganado asignado
+        descripcion:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, ARCHIVED]
+        tenantId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    
+    RanchoStatsResponse:
+      type: object
+      properties:
+        totalSecciones:
+          type: integer
+        totalPotreros:
+          type: integer
+        superficieTotal:
+          type: number
+          format: decimal
+        superficieUsada:
+          type: number
+          format: decimal
+        superficieDisponible:
+          type: number
+          format: decimal
+        porcentajeUso:
+          type: number
+          format: decimal
+        distribucionPorSeccion:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeccionDistribution'
+    
+    SeccionDistribution:
+      type: object
+      properties:
+        nombreSeccion:
+          type: string
+        superficie:
+          type: number
+          format: decimal
+        porcentaje:
+          type: number
+          format: decimal
+        totalPotreros:
+          type: integer
+    
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 0
+          description: Página actual (0-based)
+        size:
+          type: integer
+          minimum: 1
+          description: Tamaño de página
+        total:
+          type: integer
+          minimum: 0
+          description: Total de elementos
+    
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+  
+  responses:
+    BadRequest:
+      description: Petición inválida (validación fallida)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    Unauthorized:
+      description: Autenticación requerida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    Forbidden:
+      description: Acceso denegado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    Conflict:
+      description: Conflicto (ej. nombre duplicado)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

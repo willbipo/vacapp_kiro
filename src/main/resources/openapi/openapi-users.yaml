@@ -1,0 +1,599 @@
+openapi: 3.0.0
+
+info:
+  title: Vacapp Users API
+  description: |
+    API REST para el módulo de gestión de usuarios de Vacapp.
+    
+    Proporciona endpoints para autenticación, autorización y administración de usuarios
+    en una aplicación SaaS multitenant de gestión ganadera.
+    
+    ## Características principales
+    - Autenticación JWT con tokens de 24 horas
+    - Sistema de roles en dos niveles (SaaS y Business)
+    - Multi-tenancy con aislamiento completo de datos
+    - Operaciones CRUD completas para usuarios
+    - Auditoría y trazabilidad de todas las operaciones
+    
+    ## Seguridad
+    Todos los endpoints (excepto `/api/v1/auth/login`) requieren autenticación JWT
+    mediante header `Authorization: Bearer {token}`.
+    
+  version: 1.0.0
+  contact:
+    name: Vacapp Development Team
+    email: dev@vacapp.mx
+
+servers:
+  - url: /api/v1
+    description: Base path para todos los endpoints de la API
+
+paths:
+  # ========================================
+  # Authentication Endpoints
+  # ========================================
+  
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Autenticar usuario
+      description: |
+        Autentica un usuario con email y contraseña, retornando un token JWT válido por 24 horas.
+        
+        Este es el único endpoint público que NO requiere autenticación.
+      operationId: login
+      security: []  # Endpoint público - NO requiere autenticación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Autenticación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Cuenta inactiva o bloqueada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
+  # ========================================
+  # User Management Endpoints
+  # ========================================
+  
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Listar usuarios
+      description: |
+        Obtiene una lista paginada de usuarios del tenant actual.
+        
+        Los usuarios con rol SaaS (super_admin, support) pueden ver usuarios de todos los tenants.
+        Los usuarios con roles Business solo ven usuarios de su propio tenant.
+      operationId: listUsers
+      parameters:
+        - name: page
+          in: query
+          description: Número de página (0-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Cantidad de elementos por página
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Lista de usuarios obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '401':
+          description: No autenticado - token JWT inválido o ausente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Acceso denegado - permisos insuficientes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    post:
+      tags:
+        - Users
+      summary: Crear nuevo usuario
+      description: |
+        Crea un nuevo usuario en el tenant actual.
+        
+        Requiere rol admin o super_admin.
+        El email debe ser único dentro del tenant.
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Usuario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Datos de entrada inválidos o contraseña no cumple requisitos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autenticado - token JWT inválido o ausente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Acceso denegado - permisos insuficientes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflicto - email ya registrado en esta organización
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
+  /users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Obtener usuario por ID
+      description: |
+        Obtiene los detalles de un usuario específico por su UUID.
+        
+        Los usuarios solo pueden ver usuarios de su propio tenant (excepto roles SaaS).
+      operationId: getUserById
+      parameters:
+        - name: id
+          in: path
+          description: UUID del usuario
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: No autenticado - token JWT inválido o ausente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Acceso denegado - usuario pertenece a otro tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    put:
+      tags:
+        - Users
+      summary: Actualizar usuario
+      description: |
+        Actualiza los datos de un usuario existente.
+        
+        Requiere rol admin o super_admin.
+        No se permite cambiar el tenant_id de un usuario.
+      operationId: updateUser
+      parameters:
+        - name: id
+          in: path
+          description: UUID del usuario a actualizar
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Usuario actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autenticado - token JWT inválido o ausente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Acceso denegado - permisos insuficientes o usuario de otro tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    delete:
+      tags:
+        - Users
+      summary: Desactivar usuario
+      description: |
+        Desactiva un usuario (eliminación lógica).
+        
+        No se realiza DELETE físico, solo se marca el estado como 'inactive'.
+        Requiere rol admin o super_admin.
+      operationId: deleteUser
+      parameters:
+        - name: id
+          in: path
+          description: UUID del usuario a desactivar
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Usuario desactivado exitosamente (sin contenido)
+        '401':
+          description: No autenticado - token JWT inválido o ausente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Acceso denegado - permisos insuficientes o usuario de otro tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # ========================================
+    # Request DTOs
+    # ========================================
+    
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email del usuario registrado
+          example: admin@vacapp.mx
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Contraseña del usuario
+          example: SecureP@ss123
+    
+    CreateUserRequest:
+      type: object
+      required:
+        - email
+        - name
+        - phone
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Email único del usuario dentro del tenant
+          example: veterinario@ganaderia.com
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Nombre completo del usuario
+          example: Dr. Juan Pérez
+        phone:
+          type: string
+          minLength: 7
+          maxLength: 20
+          description: Teléfono de contacto (solo dígitos)
+          example: "5551234567"
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Contraseña del usuario (debe cumplir requisitos de complejidad)
+          example: SecureP@ss123
+        role:
+          type: string
+          enum:
+            - super_admin
+            - support
+            - admin
+            - manager
+            - veterinarian
+            - worker
+          description: Rol del usuario (opcional, por defecto 'worker')
+          example: veterinarian
+    
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Nombre completo del usuario
+          example: Dr. Juan Carlos Pérez
+        phone:
+          type: string
+          minLength: 7
+          maxLength: 20
+          description: Teléfono de contacto
+          example: "5559876543"
+        role:
+          type: string
+          enum:
+            - super_admin
+            - support
+            - admin
+            - manager
+            - veterinarian
+            - worker
+          description: Nuevo rol del usuario
+          example: manager
+    
+    # ========================================
+    # Response DTOs
+    # ========================================
+    
+    LoginResponse:
+      type: object
+      required:
+        - token
+        - userId
+        - email
+        - name
+        - role
+      properties:
+        token:
+          type: string
+          description: Token JWT con duración de 24 horas
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        userId:
+          type: string
+          format: uuid
+          description: UUID del usuario autenticado
+          example: 550e8400-e29b-41d4-a716-446655440000
+        email:
+          type: string
+          description: Email del usuario
+          example: admin@vacapp.mx
+        name:
+          type: string
+          description: Nombre completo del usuario
+          example: Administrador Principal
+        role:
+          type: string
+          description: Rol activo del usuario
+          example: admin
+        tenantId:
+          type: string
+          format: uuid
+          nullable: true
+          description: UUID del tenant (null para usuarios SaaS)
+          example: 123e4567-e89b-12d3-a456-426614174000
+    
+    UserResponse:
+      type: object
+      required:
+        - userId
+        - email
+        - name
+        - phone
+        - role
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: UUID único del usuario
+          example: 550e8400-e29b-41d4-a716-446655440000
+        email:
+          type: string
+          description: Email del usuario
+          example: veterinario@ganaderia.com
+        name:
+          type: string
+          description: Nombre completo del usuario
+          example: Dr. Juan Pérez
+        phone:
+          type: string
+          description: Teléfono de contacto
+          example: "5551234567"
+        role:
+          type: string
+          description: Rol activo del usuario
+          example: veterinarian
+          enum:
+            - super_admin
+            - support
+            - admin
+            - manager
+            - veterinarian
+            - worker
+        status:
+          type: string
+          description: Estado de la cuenta del usuario
+          example: ACTIVE
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - LOCKED
+        tenantId:
+          type: string
+          format: uuid
+          nullable: true
+          description: UUID del tenant al que pertenece (null para usuarios SaaS)
+          example: 123e4567-e89b-12d3-a456-426614174000
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha y hora de creación del usuario (UTC)
+          example: "2024-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha y hora de última actualización (UTC)
+          example: "2024-01-20T14:45:00Z"
+    
+    UserListResponse:
+      type: object
+      required:
+        - users
+        - pagination
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+          description: Lista de usuarios del tenant actual
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    
+    PaginationMetadata:
+      type: object
+      required:
+        - page
+        - size
+        - total
+      properties:
+        page:
+          type: integer
+          minimum: 0
+          description: Número de página actual (0-based)
+          example: 0
+        size:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Cantidad de elementos por página
+          example: 50
+        total:
+          type: integer
+          minimum: 0
+          description: Total de elementos disponibles
+          example: 127
+    
+    # ========================================
+    # Error Response
+    # ========================================
+    
+    ErrorResponse:
+      type: object
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+          description: Lista de errores de validación o de negocio
+    
+    ErrorDetail:
+      type: object
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          description: Nombre del campo que causó el error
+          example: email
+        message:
+          type: string
+          description: Mensaje descriptivo del error
+          example: El email ya está registrado en esta organización
+  
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Token JWT obtenido del endpoint de login.
+        Incluir en el header: `Authorization: Bearer {token}`
+
+security:
+  - bearerAuth: []

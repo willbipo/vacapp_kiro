@@ -1,0 +1,120 @@
+/**
+ * sidebar.css - Estilos del sidebar de navegación
+ */
+
+.sidebar {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    width: 260px;
+    height: calc(100vh - 64px);
+    background: white;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    z-index: 90;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1rem;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: all var(--transition-normal);
+    margin-bottom: 0.25rem;
+}
+
+.nav-item:hover {
+    background: var(--surface);
+    color: var(--text-primary);
+}
+
+.nav-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.nav-item svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+
+.nav-section {
+    margin-top: 1.5rem;
+}
+
+.nav-section:first-child {
+    margin-top: 0;
+}
+
+.nav-section-title {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+/* Scrollbar personalizado */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: var(--radius-full);
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--border-dark);
+}
+
+/* Responsividad */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 220px;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform var(--transition-normal);
+    }
+    
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    
+    /* Overlay para cerrar sidebar en móvil */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 64px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 89;
+    }
+    
+    .sidebar-overlay.active {
+        display: block;
+    }
+}
