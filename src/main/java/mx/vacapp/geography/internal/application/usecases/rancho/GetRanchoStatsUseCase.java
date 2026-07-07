@@ -71,7 +71,7 @@ public class GetRanchoStatsUseCase {
         
         // Calcular superficie usada
         BigDecimal superficieUsadaSecciones = ranchoRepository.sumSuperficieSeccionesByRanchoId(ranchoId);
-        BigDecimal superficieUsadaPotreros = ranchoRepository.sumSuperficioPotrerosDirectosByRanchoId(ranchoId);
+        BigDecimal superficieUsadaPotreros = ranchoRepository.sumSuperficiePotrerosDirectosByRanchoId(ranchoId);
         BigDecimal superficieUsadaTotal = superficieUsadaSecciones.add(superficieUsadaPotreros);
         
         // Calcular superficie disponible

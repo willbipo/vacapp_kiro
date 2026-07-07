@@ -77,7 +77,7 @@ public class RanchoWebController {
         // TODO: Extraer tenantId del contexto de seguridad
         UUID tenantId = UUID.fromString("00000000-0000-0000-0000-000000000001"); // Mock temporal
         
-        RanchoResult rancho = getRanchoUseCase.execute(id, tenantId);
+        RanchoResult rancho = getRanchoUseCase.execute(id);
         
         model.addAttribute("rancho", rancho);
         
@@ -152,7 +152,7 @@ public class RanchoWebController {
         // TODO: Extraer tenantId del contexto de seguridad
         UUID tenantId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         
-        RanchoResult rancho = getRanchoUseCase.execute(id, tenantId);
+        RanchoResult rancho = getRanchoUseCase.execute(id);
         
         RanchoFormDto form = new RanchoFormDto(
             rancho.ranchoId(),
@@ -195,7 +195,6 @@ public class RanchoWebController {
                 form.nombre(),
                 form.superficieTotal(),
                 form.descripcion(),
-                tenantId,
                 userId
             );
             

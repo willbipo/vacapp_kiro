@@ -53,7 +53,7 @@ public class UpdateRanchoUseCase {
         
         // Calcular superficie usada actual
         BigDecimal superficieUsadaSecciones = ranchoRepository.sumSuperficieSeccionesByRanchoId(rancho.getRanchoId());
-        BigDecimal superficieUsadaPotreros = ranchoRepository.sumSuperficioPotrerosDirectosByRanchoId(rancho.getRanchoId());
+        BigDecimal superficieUsadaPotreros = ranchoRepository.sumSuperficiePotrerosDirectosByRanchoId(rancho.getRanchoId());
         BigDecimal superficieUsadaTotal = superficieUsadaSecciones.add(superficieUsadaPotreros);
         
         // Validar que nueva superficie >= superficie usada

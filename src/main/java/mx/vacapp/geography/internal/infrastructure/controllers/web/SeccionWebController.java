@@ -65,7 +65,7 @@ public class SeccionWebController {
             secciones = listSeccionesUseCase.executeByRancho(ranchoId, tenantId);
         } else {
             // Listar todas las secciones del tenant
-            secciones = listSeccionesUseCase.execute(tenantId, page, size);
+            secciones = listSeccionesUseCase.executeAll(tenantId, page, size);
         }
         
         model.addAttribute("secciones", secciones);
@@ -83,10 +83,7 @@ public class SeccionWebController {
     public String detalleSeccion(@PathVariable UUID id, Model model) {
         log.debug("GET /geography/secciones/{}", id);
         
-        // TODO: Extraer tenantId del contexto de seguridad
-        UUID tenantId = UUID.fromString("00000000-0000-0000-0000-000000000001");
-        
-        SeccionResult seccion = getSeccionUseCase.execute(id, tenantId);
+        SeccionResult seccion = getSeccionUseCase.execute(id);
         
         model.addAttribute("seccion", seccion);
         
@@ -184,7 +181,7 @@ public class SeccionWebController {
         // TODO: Extraer tenantId del contexto de seguridad
         UUID tenantId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         
-        SeccionResult seccion = getSeccionUseCase.execute(id, tenantId);
+        SeccionResult seccion = getSeccionUseCase.execute(id);
         List<RanchoResult> ranchos = listRanchosUseCase.execute(tenantId, 0, 100);
         
         SeccionFormDto form = new SeccionFormDto(
@@ -233,7 +230,6 @@ public class SeccionWebController {
                 form.nombre(),
                 form.superficie(),
                 form.descripcion(),
-                tenantId,
                 userId
             );
             

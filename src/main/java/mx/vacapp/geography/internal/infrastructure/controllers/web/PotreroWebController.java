@@ -73,7 +73,7 @@ public class PotreroWebController {
             potreros = listPotrerosUseCase.executeByRancho(ranchoId, tenantId);
         } else {
             // Listar todos los potreros del tenant
-            potreros = listPotrerosUseCase.execute(tenantId, page, size);
+            potreros = listPotrerosUseCase.executeAll(tenantId, page, size);
         }
         
         model.addAttribute("potreros", potreros);
@@ -93,10 +93,7 @@ public class PotreroWebController {
     public String detallePotrero(@PathVariable UUID id, Model model) {
         log.debug("GET /geography/potreros/{}", id);
         
-        // TODO: Extraer tenantId del contexto de seguridad
-        UUID tenantId = UUID.fromString("00000000-0000-0000-0000-000000000001");
-        
-        PotreroResult potrero = getPotreroUseCase.execute(id, tenantId);
+        PotreroResult potrero = getPotreroUseCase.execute(id);
         
         model.addAttribute("potrero", potrero);
         
@@ -222,7 +219,7 @@ public class PotreroWebController {
         // TODO: Extraer tenantId del contexto de seguridad
         UUID tenantId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         
-        PotreroResult potrero = getPotreroUseCase.execute(id, tenantId);
+        PotreroResult potrero = getPotreroUseCase.execute(id);
         List<RanchoResult> ranchos = listRanchosUseCase.execute(tenantId, 0, 100);
         List<SeccionResult> secciones = listSeccionesUseCase.executeByRancho(potrero.ranchoId(), tenantId);
         
@@ -286,7 +283,6 @@ public class PotreroWebController {
                 form.nombre(),
                 form.superficie(),
                 form.descripcion(),
-                tenantId,
                 userId
             );
             

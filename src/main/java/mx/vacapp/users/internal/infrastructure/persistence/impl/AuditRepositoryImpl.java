@@ -3,7 +3,7 @@ package mx.vacapp.users.internal.infrastructure.persistence.impl;
 import mx.vacapp.users.internal.domain.repository.AuditRepository;
 import mx.vacapp.users.internal.infrastructure.persistence.entities.AuthLogEntity;
 import mx.vacapp.users.internal.infrastructure.persistence.entities.UserAuditEntity;
-import mx.vacapp.users.internal.infrastructure.persistence.mappers.AuditMapper;
+import mx.vacapp.users.internal.infrastructure.persistence.mappers.UsersAuditMapper;
 import mx.vacapp.users.internal.infrastructure.persistence.repositories.AuthLogJpaRepository;
 import mx.vacapp.users.internal.infrastructure.persistence.repositories.UserAuditJpaRepository;
 import org.springframework.stereotype.Service;
@@ -39,7 +39,7 @@ public class AuditRepositoryImpl implements AuditRepository {
     
     private final UserAuditJpaRepository userAuditJpaRepository;
     private final AuthLogJpaRepository authLogJpaRepository;
-    private final AuditMapper auditMapper;
+    private final UsersAuditMapper auditMapper;
     
     /**
      * Constructor con inyección de dependencias.
@@ -56,7 +56,7 @@ public class AuditRepositoryImpl implements AuditRepository {
     public AuditRepositoryImpl(
             UserAuditJpaRepository userAuditJpaRepository,
             AuthLogJpaRepository authLogJpaRepository,
-            AuditMapper auditMapper) {
+            UsersAuditMapper auditMapper) {
         this.userAuditJpaRepository = userAuditJpaRepository;
         this.authLogJpaRepository = authLogJpaRepository;
         this.auditMapper = auditMapper;

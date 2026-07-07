@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  */
 @RestControllerAdvice
 @Slf4j
-public class GlobalExceptionHandler {
+public class GeographyGlobalExceptionHandler {
     
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT;
     

@@ -15,7 +15,7 @@ import java.util.UUID;
  */
 @Component
 @RequiredArgsConstructor
-public class AuditMapper {
+public class GeographyAuditMapper {
     
     /**
      * Crea un registro de auditoría para operación CREATE.

@@ -3,6 +3,7 @@ package mx.vacapp.geography.internal.infrastructure.persistence.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mx.vacapp.geography.internal.domain.repository.GeographyAuditRepository;
+import mx.vacapp.geography.internal.domain.repository.GeographyAuditRepository.AuditEvent;
 import mx.vacapp.geography.internal.infrastructure.persistence.entities.GeographyAuditEntity;
 import mx.vacapp.geography.internal.infrastructure.persistence.repositories.GeographyAuditJpaRepository;
 import org.springframework.data.domain.PageRequest;

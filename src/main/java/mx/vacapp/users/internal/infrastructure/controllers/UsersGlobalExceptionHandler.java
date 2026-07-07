@@ -38,9 +38,9 @@ import java.util.stream.Collectors;
  * @see ErrorDetail
  */
 @RestControllerAdvice(basePackages = "mx.vacapp.users.internal.infrastructure.controllers")
-public class GlobalExceptionHandler {
+public class UsersGlobalExceptionHandler {
     
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(UsersGlobalExceptionHandler.class);
     
     // =========================================================================
     // Excepciones de Dominio

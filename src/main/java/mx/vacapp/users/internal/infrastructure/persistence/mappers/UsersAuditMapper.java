@@ -34,7 +34,7 @@ import java.util.UUID;
  * </p>
  */
 @Component
-public class AuditMapper {
+public class UsersAuditMapper {
     
     /**
      * Crea una nueva entidad de auditoría de usuario (UserAuditEntity).

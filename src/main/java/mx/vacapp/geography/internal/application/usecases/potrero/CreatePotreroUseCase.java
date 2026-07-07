@@ -104,7 +104,7 @@ public class CreatePotreroUseCase {
             }
             
             // Calcular superficie disponible en el rancho
-            BigDecimal superficieUsadaPotreros = ranchoRepository.sumSuperficioPotrerosDirectosByRanchoId(command.ranchoId());
+            BigDecimal superficieUsadaPotreros = ranchoRepository.sumSuperficiePotrerosDirectosByRanchoId(command.ranchoId());
             superficieDisponible = SurfaceCalculator.calculateAvailable(rancho.getSuperficieTotal(), superficieUsadaPotreros);
         }
         
