@@ -115,6 +115,12 @@ SPRING_PROFILES_ACTIVE=dev
 
 ## 🔑 Crear Usuario de Prueba
 
+### Credenciales Predefinidas
+- **Email**: `admin@vacapp.mx`
+- **Contraseña**: `Admin123456!`
+- **Rol**: Administrador
+- **Nota**: Este usuario se crea automáticamente en la migración `V5__insert_test_admin_user.sql`
+
 ### Vía API REST
 ```bash
 curl -X POST http://localhost:8080/api/v1/auth/login \
@@ -124,8 +130,8 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 
 ### Vía Web UI
 1. Ve a http://localhost:8080/auth/login
-2. Haz clic en "Registrarse"
-3. Completa el formulario
+2. Haz clic en "Crear Nueva Cuenta"
+3. Completa el formulario de registro
 
 ---
 

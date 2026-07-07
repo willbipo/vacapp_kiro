@@ -95,6 +95,53 @@
     cursor: not-allowed;
 }
 
+.separator {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+}
+
+.separator::before,
+.separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background-color: var(--border-color);
+}
+
+.separator-text {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+}
+
+.register-button {
+    display: inline-block;
+    width: 100%;
+    padding: var(--spacing-md);
+    text-align: center;
+    text-decoration: none;
+    background-color: var(--secondary-color, #e8f5e9);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.register-button:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.register-button:active {
+    transform: scale(0.98);
+}
+
 .login-error {
     padding: var(--spacing-md);
     background-color: #f8d7da;
