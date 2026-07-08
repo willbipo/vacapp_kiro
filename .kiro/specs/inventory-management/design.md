@@ -121,7 +121,9 @@ mx.vacapp.inventory/
         │   │   ├── ReportRestController.java
         │   │   └── dtos/
         │   │       ├── CreateCategoryRequest.java
+        │   │       ├── UpdateCategoryRequest.java
         │   │       ├── CategoryResponse.java
+        │   │       ├── CategoryDetailResponse.java
         │   │       ├── CreateSupplyRequest.java
         │   │       ├── SupplyResponse.java
         │   │       ├── SupplyDetailResponse.java

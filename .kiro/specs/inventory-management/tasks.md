@@ -23,7 +23,7 @@ Este plan detalla las tareas para construir el módulo `inventory-management` de
   - [ ] 2.8. Crear clase PastureConsumption.java
   - [ ] 2.9. Crear clase StockAlert.java
   - [ ] 2.10. Crear clase ExpirationAlert.java
-  - [ ] 2.11. Crear excepciones: SupplyNotFoundException, InsufficientStockException, CategoryNotFoundException, InvalidMovementException, ExpiredSupplyException
+  - [ ] 2.11. Crear excepciones: SupplyNotFoundException, InsufficientStockException, CategoryNotFoundException, DuplicateCategoryNameException, InvalidMovementException, ExpiredSupplyException, CategoryHasActiveSuppliesException
 
 - [ ] 3. Crear puertos de salida (repository interfaces)
   - [ ] 3.1. Crear interfaz SupplyRepository.java
@@ -109,37 +109,41 @@ Este plan detalla las tareas para construir el módulo `inventory-management` de
   - [ ] 12.4. Crear GetConsumptionByPastureUseCase.java
 
 - [ ] 13. Crear DTOs para API REST
-  - [ ] 13.1. Crear CreateCategoryRequest.java con validaciones @NotNull, @Size
-  - [ ] 13.2. Crear CategoryResponse.java
-  - [ ] 13.3. Crear CreateSupplyRequest.java
-  - [ ] 13.4. Crear SupplyResponse.java
-  - [ ] 13.5. Crear SupplyDetailResponse.java con stock_status, dias_para_vencer
-  - [ ] 13.6. Crear RegisterMovementRequest.java
-  - [ ] 13.7. Crear MovementResponse.java
-  - [ ] 13.8. Crear StockAlertResponse.java
-  - [ ] 13.9. Crear ExpirationAlertResponse.java
-  - [ ] 13.10. Crear ValuationReportResponse.java
-  - [ ] 13.11. Crear ConsumptionReportResponse.java
+  - [ ] 13.1. Crear CreateCategoryRequest.java con validaciones @NotNull, @Size para nombre
+  - [ ] 13.2. Crear UpdateCategoryRequest.java con validaciones
+  - [ ] 13.3. Crear CategoryResponse.java con campos básicos
+  - [ ] 13.4. Crear CategoryDetailResponse.java con total_insumos y valor_total
+  - [ ] 13.5. Crear CreateSupplyRequest.java
+  - [ ] 13.4. Crear CategoryDetailResponse.java con total_insumos y valor_total
+  - [ ] 13.5. Crear CreateSupplyRequest.java
+  - [ ] 13.6. Crear SupplyResponse.java
+  - [ ] 13.7. Crear SupplyDetailResponse.java con stock_status, dias_para_vencer
+  - [ ] 13.8. Crear RegisterMovementRequest.java
+  - [ ] 13.9. Crear MovementResponse.java
+  - [ ] 13.10. Crear StockAlertResponse.java
+  - [ ] 13.11. Crear ExpirationAlertResponse.java
+  - [ ] 13.12. Crear ValuationReportResponse.java
+  - [ ] 13.13. Crear ConsumptionReportResponse.java
 
 - [ ] 14. Crear especificación OpenAPI YAML
   - [ ] 14.1. Crear archivo src/main/resources/openapi/openapi-inventory.yaml
   - [ ] 14.2. Definir schemas para todos los DTOs
-  - [ ] 14.3. Definir endpoints de categorías: POST/GET/PUT/DELETE /api/v1/inventory/categories
-  - [ ] 14.4. Definir endpoints de insumos: POST/GET/PUT/DELETE /api/v1/inventory/supplies
-  - [ ] 14.5. Definir endpoints de movimientos: POST /api/v1/inventory/movements, GET /api/v1/inventory/supplies/{id}/movements
-  - [ ] 14.6. Definir endpoints de alertas: GET /api/v1/inventory/alerts/stock, GET /api/v1/inventory/alerts/expiration
+  - [ ] 14.3. Definir endpoints CRUD de categorías: POST /api/v1/inventory/categories, GET /api/v1/inventory/categories, GET /api/v1/inventory/categories/{id}, PUT /api/v1/inventory/categories/{id}, DELETE /api/v1/inventory/categories/{id}
+  - [ ] 14.4. Definir endpoints de insumos: POST/GET/PUT/DELETE /api/v1/inventory/supplies, GET /api/v1/inventory/supplies/{id}/lots
+  - [ ] 14.5. Definir endpoints de movimientos: POST /api/v1/inventory/movements, GET /api/v1/inventory/supplies/{id}/movements, GET /api/v1/inventory/movements/{id}/lot-details
+  - [ ] 14.6. Definir endpoints de alertas: GET /api/v1/inventory/alerts/stock, GET /api/v1/inventory/alerts/expiration, PUT /api/v1/inventory/alerts/{id}/resolve
   - [ ] 14.7. Definir endpoints de reportes: GET /api/v1/reports/inventory-valuation, GET /api/v1/reports/supply-consumption, GET /api/v1/reports/consumption-costs
   - [ ] 14.8. Definir endpoint de unidades: GET /api/v1/inventory/units
   - [ ] 14.9. Configurar securitySchemes Bearer JWT
 
 - [ ] 15. Implementar controladores REST
-  - [ ] 15.1. Crear SupplyCategoryRestController.java
-  - [ ] 15.2. Crear SupplyRestController.java
-  - [ ] 15.3. Crear MovementRestController.java
-  - [ ] 15.4. Crear AlertRestController.java
-  - [ ] 15.5. Crear ReportRestController.java
-  - [ ] 15.6. Implementar mapeo de DTOs
-  - [ ] 15.7. Implementar @ExceptionHandler
+  - [ ] 15.1. Crear SupplyCategoryRestController.java con CRUD completo: POST (crear), GET (listar), GET /{id} (detalle), PUT /{id} (actualizar), DELETE /{id} (archivar)
+  - [ ] 15.2. Crear SupplyRestController.java con CRUD de insumos
+  - [ ] 15.3. Crear MovementRestController.java con registro de entradas/salidas
+  - [ ] 15.4. Crear AlertRestController.java con consulta de alertas y resolución manual
+  - [ ] 15.5. Crear ReportRestController.java con reportes de valoración, consumo y costos
+  - [ ] 15.6. Implementar mapeo de DTOs en controladores
+  - [ ] 15.7. Implementar @ExceptionHandler para excepciones de dominio: CategoryNotFoundException, DuplicateCategoryNameException, SupplyNotFoundException, InsufficientStockException, InvalidMovementException
 
 - [ ] 16. Crear DTOs y controladores web (Thymeleaf)
   - [ ] 16.1. Crear SupplyFormDto.java
@@ -184,11 +188,12 @@ Este plan detalla las tareas para construir el módulo `inventory-management` de
 
 - [ ] 21. Implementar tests de integración
   - [ ] 21.1. Configurar TestContainers
-  - [ ] 21.2. Crear RegisterStockInIntegrationTest.java con tests: entrada exitosa, actualización de precio promedio ponderado, resolución de alerta de stock
-  - [ ] 21.3. Crear RegisterStockOutIntegrationTest.java con tests: salida exitosa, stock insuficiente, creación de alerta, consumo vinculado a potrero
-  - [ ] 21.4. Verificar transaccionalidad de movimientos
-  - [ ] 21.5. Crear CategoryRestControllerIntegrationTest.java
-  - [ ] 21.6. Crear ReportIntegrationTest.java
+  - [ ] 21.2. Crear CategoryRestControllerIntegrationTest.java con tests: crear categoría exitosa, nombre duplicado retorna 409, archivar categoría con insumos retorna 409, actualizar categoría, listar categorías filtradas por tenant
+  - [ ] 21.3. Crear RegisterStockInIntegrationTest.java con tests: entrada exitosa con creación de lote, actualización de stock total, resolución de alerta de stock
+  - [ ] 21.4. Crear RegisterStockOutIntegrationTest.java con tests: salida exitosa con FIFO, stock insuficiente retorna 409, creación de alerta, consumo vinculado a potrero, trazabilidad de lotes consumidos
+  - [ ] 21.5. Verificar transaccionalidad de movimientos (rollback en caso de error)
+  - [ ] 21.6. Crear SupplyRestControllerIntegrationTest.java
+  - [ ] 21.7. Crear ReportIntegrationTest.java
 
 - [ ] 22. Implementar tests unitarios
   - [ ] 22.1. Crear CreateSupplyUseCaseTest.java
