@@ -11,7 +11,7 @@ El módulo de historial clínico (clinical-history) proporciona funcionalidades 
 - **Vaccination_Record**: Registro específico de aplicación de vacuna con descuento automático de stock
 - **Treatment_Record**: Registro de tratamiento médico general (no vacuna)
 - **Intervention_Type**: Tipo de intervención (VACCINATION, TREATMENT)
-- **Treatment_Type**: Tipo de tratamiento médico (DESPARASITACION, ANTIBIOTICO, VITAMINAS, CIRUGIA, CURACION, OTRO)
+- **Treatment_Type**: Categoría de tratamiento médico definida por el usuario (ej: Desparasitación, Antibiótico, Vitaminas, Cirugía, Curación, etc.). Gestionada mediante CRUD
 - **Via_Administracion**: Vía de administración del medicamento (INTRAMUSCULAR, SUBCUTANEA, INTRAVENOSA, ORAL, TOPICA)
 - **Next_Dose**: Fecha calculada automáticamente para la próxima aplicación de vacuna
 - **Stock_Decrement**: Descuento automático de stock de vacuna basado en dosis aplicada
@@ -48,20 +48,47 @@ El módulo de historial clínico (clinical-history) proporciona funcionalidades 
 
 #### Acceptance Criteria
 
-1. WHEN un veterinario autenticado registra un tratamiento médico con animal_id válido, tipo_tratamiento, medicamento_nombre, dosis_aplicada, vía_administración, diagnóstico, duracion_tratamiento_dias, costo_tratamiento, fecha_aplicacion, y notas opcionales, THE Clinical_History_Module SHALL crear el registro con intervention_type = TREATMENT y retornar código HTTP 201
+1. WHEN un veterinario autenticado registra un tratamiento médico con animal_id válido, treatment_type_id válido, medicamento_nombre, dosis_aplicada, vía_administración, diagnóstico, duracion_tratamiento_dias, costo_tratamiento, fecha_aplicacion, y notas opcionales, THE Clinical_History_Module SHALL crear el registro con intervention_type = TREATMENT y retornar código HTTP 201
 2. WHEN se registra un tratamiento, THE Clinical_History_Module SHALL validar que el animal existe y está activo consultando cattle-inventory
-3. THE Clinical_History_Module SHALL aceptar valores de tipo_tratamiento: DESPARASITACION, ANTIBIOTICO, VITAMINAS, CIRUGIA, CURACION, OTRO
-4. WHEN tipo_tratamiento = OTRO, THE Clinical_History_Module SHALL requerir campo notas con descripción detallada (mínimo 10 caracteres)
+3. THE Clinical_History_Module SHALL validar que el treatment_type_id existe y tiene status = ACTIVO antes de crear el tratamiento
+4. IF el treatment_type_id NO existe o está ARCHIVADO, THEN THE Clinical_History_Module SHALL retornar código HTTP 400 con mensaje "Tipo de tratamiento no encontrado o inactivo"
 5. WHEN se proporciona medicamento_nombre con longitud entre 2 y 200 caracteres, THE Clinical_History_Module SHALL aceptar el valor
 6. WHEN se proporciona diagnostico con longitud entre 5 y 1000 caracteres, THE Clinical_History_Module SHALL aceptar el valor
 7. WHEN se proporciona duracion_tratamiento_dias >= 1 y <= 365, THE Clinical_History_Module SHALL aceptar el valor
 8. IF duracion_tratamiento_dias > 1, THEN THE Clinical_History_Module SHALL calcular fecha_fin_tratamiento = fecha_aplicacion + duracion_tratamiento_dias
 9. WHEN se proporciona costo_tratamiento >= 0 y <= 999,999.99, THE Clinical_History_Module SHALL aceptar el valor
 10. WHEN un veterinario lista los tratamientos de un animal, THE Clinical_History_Module SHALL retornar registros filtrados por animal_id y tenant_id ordenados por fecha_aplicacion descendente
-11. WHEN un veterinario consulta un tratamiento por ID, THE Clinical_History_Module SHALL incluir en la respuesta: record_id, animal_id, tipo_tratamiento, medicamento_nombre, dosis_aplicada, via_administracion, diagnostico, fecha_aplicacion, fecha_fin_tratamiento, duracion_tratamiento_dias, costo_tratamiento, notas, aplicado_por, created_at
+11. WHEN un veterinario consulta un tratamiento por ID, THE Clinical_History_Module SHALL incluir en la respuesta: record_id, animal_id, treatment_type_id, treatment_type_nombre, medicamento_nombre, dosis_aplicada, via_administracion, diagnostico, fecha_aplicacion, fecha_fin_tratamiento, duracion_tratamiento_dias, costo_tratamiento, notas, aplicado_por, created_at
 12. THE Clinical_History_Module SHALL registrar en auditoría: record_id, entity_type (TREATMENT), operation_type (CREATE), timestamp, modified_by, tenant_id, new_values
 
-### Requirement 3: Control de Acceso Basado en Roles
+### Requirement 3: Gestión de Tipos de Tratamiento (CRUD)
+
+**User Story:** Como administrador o veterinario, quiero crear y gestionar tipos de tratamiento personalizados para mi organización, para que pueda categorizar tratamientos según mis necesidades específicas.
+
+#### Acceptance Criteria
+
+1. THE Clinical_History_Module SHALL exponer endpoint POST /api/v1/clinical-history/treatment-types para crear nuevos tipos de tratamiento
+2. WHEN un usuario autenticado crea un tipo de tratamiento con nombre válido (2-100 caracteres), descripción opcional (máx 500 caracteres), THE Clinical_History_Module SHALL crear el registro con status = ACTIVO y retornar código HTTP 201
+3. THE Clinical_History_Module SHALL validar que el nombre del tipo de tratamiento no esté duplicado (case-insensitive) dentro del mismo tenant y rancho
+4. WHEN se intenta crear un tipo de tratamiento con nombre duplicado, THE Clinical_History_Module SHALL retornar código HTTP 409 con mensaje "Ya existe un tipo de tratamiento con ese nombre"
+5. THE Clinical_History_Module SHALL aplicar UNIQUE constraint en columnas (tenant_id, rancho_id, LOWER(nombre))
+6. THE Clinical_History_Module SHALL exponer endpoint GET /api/v1/clinical-history/treatment-types con filtros opcionales: status (ACTIVO/ARCHIVADO), rancho_id, search (búsqueda por nombre)
+7. WHEN se lista tipos de tratamiento sin filtros, THE Clinical_History_Module SHALL retornar todos los tipos ACTIVOS del tenant ordenados por nombre ascendente
+8. THE Clinical_History_Module SHALL exponer endpoint GET /api/v1/clinical-history/treatment-types/{id} para consultar un tipo específico
+9. THE Clinical_History_Module SHALL exponer endpoint PUT /api/v1/clinical-history/treatment-types/{id} para actualizar nombre y descripción
+10. WHEN se actualiza un tipo de tratamiento, THE Clinical_History_Module SHALL validar que el nuevo nombre no esté duplicado (excluyendo el registro actual)
+11. THE Clinical_History_Module SHALL exponer endpoint DELETE /api/v1/clinical-history/treatment-types/{id} para archivar (soft delete) tipos de tratamiento
+12. WHEN se archiva un tipo de tratamiento, THE Clinical_History_Module SHALL cambiar status a ARCHIVADO sin eliminar físicamente el registro
+13. WHEN se intenta archivar un tipo de tratamiento que tiene tratamientos asociados activos, THE Clinical_History_Module SHALL retornar código HTTP 409 con mensaje "No se puede archivar. Existen tratamientos registrados con este tipo"
+14. THE Clinical_History_Module SHALL permitir que usuarios con roles ADMIN y MANAGER puedan crear, actualizar y archivar tipos de tratamiento
+15. THE Clinical_History_Module SHALL permitir que usuarios con rol VETERINARIO puedan solo LEER tipos de tratamiento
+16. THE Clinical_History_Module SHALL aplicar filtro tenant_id automáticamente en todas las operaciones de tipos de tratamiento
+17. THE Clinical_History_Module SHALL registrar en auditoría operaciones CREATE, UPDATE, ARCHIVE sobre tipos de tratamiento
+18. WHEN se registra un tratamiento médico, THE Clinical_History_Module SHALL validar que el treatment_type_id existe y está ACTIVO
+19. IF el treatment_type_id NO existe o está ARCHIVADO, THEN THE Clinical_History_Module SHALL retornar código HTTP 400 con mensaje "Tipo de tratamiento no encontrado o inactivo"
+20. THE Clinical_History_Module SHALL incluir en respuesta de tipos de tratamiento: treatment_type_id, nombre, descripcion, status, rancho_id, uso_count (cantidad de tratamientos que lo usan), created_at, updated_at
+
+### Requirement 4: Control de Acceso Basado en Roles
 
 **User Story:** Como sistema, quiero que solo los usuarios con rol VETERINARIO puedan registrar intervenciones clínicas, para que garantice la integridad y veracidad de los registros médicos.
 
@@ -76,7 +103,7 @@ El módulo de historial clínico (clinical-history) proporciona funcionalidades 
 7. WHEN un usuario intenta modificar un registro clínico existente, THE Clinical_History_Module SHALL retornar código HTTP 405 con mensaje "Los registros clínicos son inmutables. Cree un nuevo registro si es necesario"
 8. THE Clinical_History_Module SHALL aplicar filtro tenant_id automáticamente en todas las operaciones de lectura y escritura
 
-### Requirement 4: Integración con Módulo Cattle-Inventory
+### Requirement 5: Integración con Módulo Cattle-Inventory
 
 **User Story:** Como sistema, quiero validar la existencia y estado del animal antes de registrar intervenciones, para que garantice consistencia de datos entre módulos.
 
@@ -91,7 +118,7 @@ El módulo de historial clínico (clinical-history) proporciona funcionalidades 
 7. IF tenant_id no coincide, THEN THE Clinical_History_Module SHALL retornar código HTTP 403 con mensaje "El animal no pertenece a su organización"
 8. WHEN se consulta el historial clínico de un animal, THE Clinical_History_Module SHALL enriquecer la respuesta con datos actuales del animal (nombre, identificador, ubicación actual)
 
-### Requirement 5: Integración con Módulo Vaccination-Management
+### Requirement 6: Integración con Módulo Vaccination-Management
 
 **User Story:** Como sistema, quiero integrarme con el módulo de vacunación para decrementar stock automáticamente y obtener información de vacunas, para que garantice consistencia de inventarios.
 
@@ -110,7 +137,7 @@ El módulo de historial clínico (clinical-history) proporciona funcionalidades 
 11. THE Clinical_History_Module SHALL validar que vacuna.tenant_id = tenant_id del veterinario autenticado
 12. WHEN se consulta historial de vacunaciones, THE Clinical_History_Module SHALL enriquecer con información actual de la vacuna (si aún existe en el sistema)
 
-### Requirement 6: Generación de Reportes de Historial Clínico
+### Requirement 7: Generación de Reportes de Historial Clínico
 
 **User Story:** Como veterinario o administrador, quiero generar reportes de historial clínico con filtros por animal, periodo, tipo de intervención, para que pueda analizar la salud del ganado y tomar decisiones informadas.
 
