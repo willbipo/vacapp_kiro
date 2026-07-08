@@ -13,29 +13,32 @@ Este plan detalla las tareas para construir el módulo `vaccination-management` 
   - [ ] 1.4. Configurar openapi-generator-maven-plugin para vaccination API
 
 - [ ] 2. Crear entidades de dominio puras
-  - [ ] 2.1. Crear clase VaccineCategory.java (entidad o enum)
-  - [ ] 2.2. Crear clase VaccineType.java (entidad o enum)
-  - [ ] 2.3. Crear clase AdministrationRoute.java (entidad o enum)
+  - [ ] 2.1. Crear clase VaccineCategory.java con campos: id, nombre, descripcion, rancho_id, tenant_id, activo
+  - [ ] 2.2. Crear clase VaccineType.java con campos: id, nombre, descripcion, rancho_id, tenant_id, activo
+  - [ ] 2.3. Crear clase AdministrationRoute.java con campos: id, nombre, abreviatura, descripcion, rancho_id, tenant_id, activo
   - [ ] 2.4. Crear clase Vaccine.java con métodos requiresBooster(), isLowStock()
   - [ ] 2.5. Crear clase VaccineLot.java con métodos isExpired(), hasStock(), decrementStock(), daysUntilExpiration()
   - [ ] 2.6. Crear clase VaccinationApplication.java con métodos hasNextDose(), isNextDoseDue(), daysUntilNextDose()
   - [ ] 2.7. Crear clase NextDoseCalculator.java con método estático calculate()
   - [ ] 2.8. Crear clase StockAlert.java
   - [ ] 2.9. Crear clase ExpirationAlert.java
-  - [ ] 2.10. Crear excepciones: VaccineNotFoundException, InsufficientStockException, ExpiredVaccineException, InvalidVeterinarianException, InvalidAnimalException
+  - [ ] 2.10. Crear excepciones: VaccineNotFoundException, InsufficientStockException, ExpiredVaccineException, InvalidVeterinarianException, InvalidAnimalException, CategoryNotFoundException, DuplicateCategoryNameException
 
 - [ ] 3. Crear puertos de salida (repository interfaces)
-  - [ ] 3.1. Crear interfaz VaccineRepository.java con métodos CRUD y filtros
-  - [ ] 3.2. Crear interfaz VaccineLotRepository.java con métodos para gestión de lotes
-  - [ ] 3.3. Crear interfaz VaccinationApplicationRepository.java
-  - [ ] 3.4. Crear interfaz StockAlertRepository.java
-  - [ ] 3.5. Crear interfaz ExpirationAlertRepository.java
-  - [ ] 3.6. Crear interfaz VaccinationAuditRepository.java
+  - [ ] 3.1. Crear interfaz VaccineCategoryRepository.java con métodos CRUD y filtros por tenant/rancho
+  - [ ] 3.2. Crear interfaz VaccineTypeRepository.java con métodos CRUD y filtros por tenant/rancho
+  - [ ] 3.3. Crear interfaz AdministrationRouteRepository.java con métodos CRUD y filtros por tenant/rancho
+  - [ ] 3.4. Crear interfaz VaccineRepository.java con métodos CRUD y filtros
+  - [ ] 3.5. Crear interfaz VaccineLotRepository.java con métodos para gestión de lotes
+  - [ ] 3.6. Crear interfaz VaccinationApplicationRepository.java
+  - [ ] 3.7. Crear interfaz StockAlertRepository.java
+  - [ ] 3.8. Crear interfaz ExpirationAlertRepository.java
+  - [ ] 3.9. Crear interfaz VaccinationAuditRepository.java
 
 - [ ] 4. Crear entidades JPA y mappers
-  - [ ] 4.1. Crear VaccineCategoryEntity.java con datos pre-cargados (5 categorías)
-  - [ ] 4.2. Crear VaccineTypeEntity.java con datos pre-cargados (5 tipos)
-  - [ ] 4.3. Crear AdministrationRouteEntity.java con datos pre-cargados (5 vías)
+  - [ ] 4.1. Crear VaccineCategoryEntity.java con tenant_id, rancho_id, nombre UNIQUE per tenant/rancho
+  - [ ] 4.2. Crear VaccineTypeEntity.java con tenant_id, rancho_id, nombre UNIQUE per tenant/rancho
+  - [ ] 4.3. Crear AdministrationRouteEntity.java con tenant_id, rancho_id, nombre UNIQUE per tenant/rancho
   - [ ] 4.4. Crear VaccineEntity.java con todas las relaciones FK
   - [ ] 4.5. Crear VaccineLotEntity.java
   - [ ] 4.6. Crear VaccinationApplicationEntity.java
@@ -43,21 +46,30 @@ Este plan detalla las tareas para construir el módulo `vaccination-management` 
   - [ ] 4.8. Crear ExpirationAlertEntity.java
   - [ ] 4.9. Crear StockAdjustmentEntity.java
   - [ ] 4.10. Crear VaccinationAuditEntity.java
-  - [ ] 4.11. Crear VaccineMapper.java para mapeo bidireccional
-  - [ ] 4.12. Crear VaccineLotMapper.java
-  - [ ] 4.13. Crear VaccinationApplicationMapper.java
+  - [ ] 4.11. Crear VaccineCategoryMapper.java para mapeo bidireccional
+  - [ ] 4.12. Crear VaccineTypeMapper.java para mapeo bidireccional
+  - [ ] 4.13. Crear AdministrationRouteMapper.java para mapeo bidireccional
+  - [ ] 4.14. Crear VaccineMapper.java para mapeo bidireccional
+  - [ ] 4.15. Crear VaccineLotMapper.java
+  - [ ] 4.16. Crear VaccinationApplicationMapper.java
 
 - [ ] 5. Implementar repositorios JPA
-  - [ ] 5.1. Crear VaccineJpaRepository extends JpaRepository<VaccineEntity, UUID>
-  - [ ] 5.2. Crear VaccineLotJpaRepository con custom queries para lotes por vencer
-  - [ ] 5.3. Crear VaccinationApplicationJpaRepository con queries complejas
-  - [ ] 5.4. Crear StockAlertJpaRepository
-  - [ ] 5.5. Crear ExpirationAlertJpaRepository
-  - [ ] 5.6. Crear VaccineRepositoryImpl con filtrado por tenant_id y rancho_id
-  - [ ] 5.7. Crear VaccineLotRepositoryImpl
-  - [ ] 5.8. Crear VaccinationApplicationRepositoryImpl
-  - [ ] 5.9. Crear StockAlertRepositoryImpl
-  - [ ] 5.10. Crear ExpirationAlertRepositoryImpl
+  - [ ] 5.1. Crear VaccineCategoryJpaRepository extends JpaRepository<VaccineCategoryEntity, UUID>
+  - [ ] 5.2. Crear VaccineTypeJpaRepository extends JpaRepository<VaccineTypeEntity, UUID>
+  - [ ] 5.3. Crear AdministrationRouteJpaRepository extends JpaRepository<AdministrationRouteEntity, UUID>
+  - [ ] 5.4. Crear VaccineJpaRepository extends JpaRepository<VaccineEntity, UUID>
+  - [ ] 5.5. Crear VaccineLotJpaRepository con custom queries para lotes por vencer
+  - [ ] 5.6. Crear VaccinationApplicationJpaRepository con queries complejas
+  - [ ] 5.7. Crear StockAlertJpaRepository
+  - [ ] 5.8. Crear ExpirationAlertJpaRepository
+  - [ ] 5.9. Crear VaccineCategoryRepositoryImpl con filtrado por tenant_id y rancho_id
+  - [ ] 5.10. Crear VaccineTypeRepositoryImpl con filtrado por tenant_id y rancho_id
+  - [ ] 5.11. Crear AdministrationRouteRepositoryImpl con filtrado por tenant_id y rancho_id
+  - [ ] 5.12. Crear VaccineRepositoryImpl con filtrado por tenant_id y rancho_id
+  - [ ] 5.13. Crear VaccineLotRepositoryImpl
+  - [ ] 5.14. Crear VaccinationApplicationRepositoryImpl
+  - [ ] 5.15. Crear StockAlertRepositoryImpl
+  - [ ] 5.16. Crear ExpirationAlertRepositoryImpl
 
 - [ ] 6. Implementar integración con otros módulos
   - [ ] 6.1. Crear CattleServiceClient.java para integración con cattle-inventory
@@ -67,21 +79,38 @@ Este plan detalla las tareas para construir el módulo `vaccination-management` 
   - [ ] 6.5. Implementar método validateVeterinarian(UUID userId)
 
 - [ ] 7. Crear comandos y resultados
-  - [ ] 7.1. Crear CreateVaccineCommand.java
-  - [ ] 7.2. Crear VaccineResult.java
-  - [ ] 7.3. Crear CreateVaccineLotCommand.java
-  - [ ] 7.4. Crear VaccineLotResult.java
-  - [ ] 7.5. Crear ApplyVaccinationCommand.java
-  - [ ] 7.6. Crear VaccinationApplicationResult.java con proxima_dosis_fecha
-  - [ ] 7.7. Crear ConsumptionReportResult.java
-  - [ ] 7.8. Crear CostReportResult.java
+  - [ ] 7.1. Crear CreateCategoryCommand.java y CategoryResult.java
+  - [ ] 7.2. Crear CreateVaccineTypeCommand.java y VaccineTypeResult.java
+  - [ ] 7.3. Crear CreateAdministrationRouteCommand.java y AdministrationRouteResult.java
+  - [ ] 7.4. Crear CreateVaccineCommand.java
+  - [ ] 7.5. Crear VaccineResult.java
+  - [ ] 7.6. Crear CreateVaccineLotCommand.java
+  - [ ] 7.7. Crear VaccineLotResult.java
+  - [ ] 7.8. Crear ApplyVaccinationCommand.java
+  - [ ] 7.9. Crear VaccinationApplicationResult.java con proxima_dosis_fecha
+  - [ ] 7.10. Crear ConsumptionReportResult.java
+  - [ ] 7.11. Crear CostReportResult.java
 
-- [ ] 8. Implementar casos de uso de vacunas
-  - [ ] 8.1. Crear CreateVaccineUseCase.java con validación de categoría, tipo, vía
-  - [ ] 8.2. Crear UpdateVaccineUseCase.java
-  - [ ] 8.3. Crear GetVaccineUseCase.java con cálculo de stock_total
-  - [ ] 8.4. Crear ListVaccinesUseCase.java con filtros por categoría, activo
-  - [ ] 8.5. Crear ArchiveVaccineUseCase.java (soft delete)
+- [ ] 8. Implementar casos de uso de categorías, tipos y vías
+  - [ ] 8.1. Crear CreateCategoryUseCase.java con validación de nombre duplicado por tenant/rancho
+  - [ ] 8.2. Crear UpdateCategoryUseCase.java con validación de pertenencia
+  - [ ] 8.3. Crear ListCategoriesUseCase.java filtrado por tenant/rancho
+  - [ ] 8.4. Crear ArchiveCategoryUseCase.java con validación de vacunas activas
+  - [ ] 8.5. Crear CreateVaccineTypeUseCase.java con validaciones
+  - [ ] 8.6. Crear UpdateVaccineTypeUseCase.java
+  - [ ] 8.7. Crear ListVaccineTypesUseCase.java
+  - [ ] 8.8. Crear ArchiveVaccineTypeUseCase.java
+  - [ ] 8.9. Crear CreateAdministrationRouteUseCase.java con validaciones
+  - [ ] 8.10. Crear UpdateAdministrationRouteUseCase.java
+  - [ ] 8.11. Crear ListAdministrationRoutesUseCase.java
+  - [ ] 8.12. Crear ArchiveAdministrationRouteUseCase.java
+
+- [ ] 9. Implementar casos de uso de vacunas
+  - [ ] 9.1. Crear CreateVaccineUseCase.java con validación de categoría, tipo, vía existen y pertenecen al mismo tenant/rancho
+  - [ ] 9.2. Crear UpdateVaccineUseCase.java
+  - [ ] 9.3. Crear GetVaccineUseCase.java con cálculo de stock_total
+  - [ ] 9.4. Crear ListVaccinesUseCase.java con filtros por categoría, activo
+  - [ ] 9.5. Crear ArchiveVaccineUseCase.java (soft delete)
 
 - [ ] 9. Implementar casos de uso de lotes
   - [ ] 9.1. Crear CreateVaccineLotUseCase.java con validación de fecha_vencimiento no pasada

@@ -69,6 +69,22 @@ mx.vacapp.vaccination/
     │
     ├── application/                    ← Capa de Aplicación
     │   └── usecases/
+    │       ├── category/
+    │       │   ├── CreateCategoryUseCase.java
+    │       │   ├── UpdateCategoryUseCase.java
+    │       │   ├── ListCategoriesUseCase.java
+    │       │   ├── GetCategoryUseCase.java
+    │       │   └── ArchiveCategoryUseCase.java
+    │       ├── type/
+    │       │   ├── CreateVaccineTypeUseCase.java
+    │       │   ├── UpdateVaccineTypeUseCase.java
+    │       │   ├── ListVaccineTypesUseCase.java
+    │       │   └── ArchiveVaccineTypeUseCase.java
+    │       ├── route/
+    │       │   ├── CreateAdministrationRouteUseCase.java
+    │       │   ├── UpdateAdministrationRouteUseCase.java
+    │       │   ├── ListAdministrationRoutesUseCase.java
+    │       │   └── ArchiveAdministrationRouteUseCase.java
     │       ├── vaccine/
     │       │   ├── CreateVaccineUseCase.java
     │       │   ├── UpdateVaccineUseCase.java
@@ -108,12 +124,21 @@ mx.vacapp.vaccination/
         │
         ├── controllers/
         │   ├── mobile/                 ← API REST
+        │   │   ├── VaccineCategoryRestController.java
+        │   │   ├── VaccineTypeRestController.java
+        │   │   ├── AdministrationRouteRestController.java
         │   │   ├── VaccineRestController.java
         │   │   ├── VaccineLotRestController.java
         │   │   ├── VaccinationRestController.java
         │   │   ├── AlertRestController.java
         │   │   ├── ReportRestController.java
         │   │   └── dtos/
+        │   │       ├── CreateVaccineCategoryRequest.java
+        │   │       ├── VaccineCategoryResponse.java
+        │   │       ├── CreateVaccineTypeRequest.java
+        │   │       ├── VaccineTypeResponse.java
+        │   │       ├── CreateAdministrationRouteRequest.java
+        │   │       ├── AdministrationRouteResponse.java
         │   │       ├── CreateVaccineRequest.java
         │   │       ├── VaccineResponse.java
         │   │       ├── VaccineDetailResponse.java
@@ -495,63 +520,57 @@ public class NextDoseCalculator {
 ### Esquema de Base de Datos MySQL
 
 ```sql
--- Tabla de categorías de vacunas
+-- Tabla de categorías de vacunas (sin datos predefinidos)
 CREATE TABLE vaccine_categories (
     id_categoria BINARY(16) PRIMARY KEY,
-    nombre VARCHAR(50) NOT NULL UNIQUE,
+    nombre VARCHAR(50) NOT NULL,
     descripcion TEXT,
+    rancho_id BINARY(16) NOT NULL,
+    tenant_id BINARY(16) NOT NULL,
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    created_by BINARY(16) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     
+    CONSTRAINT uq_vaccine_categories_nombre_tenant UNIQUE (tenant_id, rancho_id, nombre),
+    INDEX idx_vaccine_categories_tenant (tenant_id, rancho_id),
     INDEX idx_vaccine_categories_activo (activo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Insertar categorías predefinidas
-INSERT INTO vaccine_categories (id_categoria, nombre, descripcion) VALUES
-(UUID_TO_BIN(UUID()), 'Reproductiva', 'Vacunas para prevención de enfermedades reproductivas'),
-(UUID_TO_BIN(UUID()), 'Respiratoria', 'Vacunas para prevención de enfermedades respiratorias'),
-(UUID_TO_BIN(UUID()), 'Digestiva', 'Vacunas para prevención de enfermedades digestivas'),
-(UUID_TO_BIN(UUID()), 'Clostridiales', 'Vacunas contra clostridiosis'),
-(UUID_TO_BIN(UUID()), 'Parasitarias', 'Vacunas antiparasitarias');
-
--- Tabla de tipos de vacunas
+-- Tabla de tipos de vacunas (sin datos predefinidos)
 CREATE TABLE vaccine_types (
     id_tipo_vacuna BINARY(16) PRIMARY KEY,
-    nombre VARCHAR(50) NOT NULL UNIQUE,
+    nombre VARCHAR(50) NOT NULL,
     descripcion TEXT,
+    rancho_id BINARY(16) NOT NULL,
+    tenant_id BINARY(16) NOT NULL,
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    created_by BINARY(16) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     
+    CONSTRAINT uq_vaccine_types_nombre_tenant UNIQUE (tenant_id, rancho_id, nombre),
+    INDEX idx_vaccine_types_tenant (tenant_id, rancho_id),
     INDEX idx_vaccine_types_activo (activo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Insertar tipos predefinidos
-INSERT INTO vaccine_types (id_tipo_vacuna, nombre, descripcion) VALUES
-(UUID_TO_BIN(UUID()), 'Virus Vivo', 'Vacuna con virus atenuado'),
-(UUID_TO_BIN(UUID()), 'Virus Muerto', 'Vacuna con virus inactivado'),
-(UUID_TO_BIN(UUID()), 'Bacterina', 'Vacuna bacteriana'),
-(UUID_TO_BIN(UUID()), 'Toxoide', 'Vacuna con toxinas inactivadas'),
-(UUID_TO_BIN(UUID()), 'Recombinante', 'Vacuna recombinante de subunidades');
-
--- Tabla de vías de administración
+-- Tabla de vías de administración (sin datos predefinidos)
 CREATE TABLE administration_routes (
     id_via_administracion BINARY(16) PRIMARY KEY,
-    nombre VARCHAR(50) NOT NULL UNIQUE,
+    nombre VARCHAR(50) NOT NULL,
     abreviatura VARCHAR(10),
     descripcion TEXT,
+    rancho_id BINARY(16) NOT NULL,
+    tenant_id BINARY(16) NOT NULL,
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    created_by BINARY(16) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     
+    CONSTRAINT uq_administration_routes_nombre_tenant UNIQUE (tenant_id, rancho_id, nombre),
+    INDEX idx_administration_routes_tenant (tenant_id, rancho_id),
     INDEX idx_administration_routes_activo (activo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Insertar vías predefinidas
-INSERT INTO administration_routes (id_via_administracion, nombre, abreviatura, descripcion) VALUES
-(UUID_TO_BIN(UUID()), 'Intramuscular', 'IM', 'Administración en músculo'),
-(UUID_TO_BIN(UUID()), 'Subcutánea', 'SC', 'Administración bajo la piel'),
-(UUID_TO_BIN(UUID()), 'Intranasal', 'IN', 'Administración por nariz'),
-(UUID_TO_BIN(UUID()), 'Oral', 'PO', 'Administración por boca'),
-(UUID_TO_BIN(UUID()), 'Intravenosa', 'IV', 'Administración en vena');
 
 -- Tabla principal de vacunas
 CREATE TABLE vaccines (

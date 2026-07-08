@@ -26,37 +26,46 @@ El módulo de gestión de vacunas (vaccination-management) es un componente crí
 
 ### Requirement 1: Gestión de Categorías de Vacunas
 
-**User Story:** Como administrador del sistema, quiero gestionar catálogos de categorías de vacunas, para que clasifique las vacunas según su finalidad terapéutica.
+**User Story:** Como administrador del sistema, quiero gestionar catálogos de categorías de vacunas con CRUD completo, para que cree, modifique y organice categorías personalizadas según las necesidades del rancho.
 
 #### Acceptance Criteria
 
-1. THE Vaccination_Management_Module SHALL soportar exactamente cinco categorías predefinidas: Reproductiva, Respiratoria, Digestiva, Clostridiales, Parasitarias
-2. WHEN un usuario consulta categorías via GET /api/v1/vaccines/categories, THE Vaccination_Management_Module SHALL retornar array con id_categoria, nombre, descripcion
-3. THE Vaccination_Management_Module SHALL almacenar categorías en tabla vaccine_categories con campos: id_categoria (UUID PK), nombre (VARCHAR 50 UNIQUE), descripcion (TEXT), activo (BOOLEAN DEFAULT TRUE)
-4. WHEN se crea una vacuna, THE Vaccination_Management_Module SHALL validar que id_categoria existe y está activo, retornar HTTP 400 si es inválido
-5. THE Vaccination_Management_Module SHALL permitir activar/desactivar categorías sin eliminarlas físicamente
+1. WHEN un usuario crea una categoría via POST /api/v1/vaccines/categories, THE Vaccination_Management_Module SHALL crear registro con campos: id_categoria (UUID), nombre (VARCHAR 50 NOT NULL UNIQUE), descripcion (TEXT), rancho_id (UUID NOT NULL), tenant_id (UUID NOT NULL), activo (BOOLEAN DEFAULT TRUE), created_at, created_by
+2. WHEN se proporciona nombre vacío o solo espacios, THE Vaccination_Management_Module SHALL retornar HTTP 400 con mensaje "Nombre de categoría es requerido"
+3. WHEN se proporciona nombre duplicado para el mismo tenant/rancho, THE Vaccination_Management_Module SHALL retornar HTTP 409 con mensaje "Ya existe una categoría con ese nombre"
+4. WHEN un usuario consulta categorías via GET /api/v1/vaccines/categories, THE Vaccination_Management_Module SHALL retornar array filtrado por tenant_id y rancho_id con campos: id_categoria, nombre, descripcion, activo, fecha_creacion
+5. WHEN un usuario actualiza una categoría via PUT /api/v1/vaccines/categories/{id}, THE Vaccination_Management_Module SHALL validar que pertenece a su tenant/rancho y actualizar nombre y descripcion
+6. WHEN un usuario archiva una categoría via DELETE /api/v1/vaccines/categories/{id}, THE Vaccination_Management_Module SHALL cambiar activo = FALSE sin eliminar físicamente
+7. THE Vaccination_Management_Module SHALL validar que categoría pertenece al tenant/rancho antes de archivarla
+8. WHEN se archiva una categoría, THE Vaccination_Management_Module SHALL validar que no existan vacunas activas con esa categoría, retornar HTTP 409 si existen
+9. WHEN se crea una vacuna, THE Vaccination_Management_Module SHALL validar que id_categoria existe, pertenece al mismo tenant/rancho, y está activo, retornar HTTP 400 si es inválido
+10. THE Vaccination_Management_Module SHALL almacenar categorías en tabla vaccine_categories con índice en (tenant_id, rancho_id, nombre) para búsquedas rápidas
 
 ### Requirement 2: Gestión de Tipos de Vacunas
 
-**User Story:** Como administrador, quiero gestionar tipos biológicos de vacunas, para que clasifique las vacunas según su composición.
+**User Story:** Como administrador, quiero gestionar tipos biológicos de vacunas con CRUD completo, para que cree tipos personalizados según la composición de las vacunas que utilizo.
 
 #### Acceptance Criteria
 
-1. THE Vaccination_Management_Module SHALL soportar exactamente cinco tipos predefinidos: Virus Vivo, Virus Muerto, Bacterina, Toxoide, Recombinante
-2. WHEN un usuario consulta tipos via GET /api/v1/vaccines/types, THE Vaccination_Management_Module SHALL retornar array con id_tipo_vacuna, nombre, descripcion
-3. THE Vaccination_Management_Module SHALL almacenar tipos en tabla vaccine_types con campos: id_tipo_vacuna (UUID PK), nombre (VARCHAR 50 UNIQUE), descripcion (TEXT), activo (BOOLEAN DEFAULT TRUE)
-4. WHEN se crea una vacuna, THE Vaccination_Management_Module SHALL validar que id_tipo_vacuna existe y está activo
+1. WHEN un usuario crea un tipo via POST /api/v1/vaccines/types, THE Vaccination_Management_Module SHALL crear registro con campos: id_tipo_vacuna (UUID), nombre (VARCHAR 50 NOT NULL UNIQUE), descripcion (TEXT), rancho_id (UUID NOT NULL), tenant_id (UUID NOT NULL), activo (BOOLEAN DEFAULT TRUE), created_at, created_by
+2. WHEN se proporciona nombre vacío o duplicado, THE Vaccination_Management_Module SHALL retornar HTTP 400/409 respectivamente
+3. WHEN un usuario consulta tipos via GET /api/v1/vaccines/types, THE Vaccination_Management_Module SHALL retornar array filtrado por tenant_id y rancho_id
+4. WHEN un usuario actualiza un tipo via PUT /api/v1/vaccines/types/{id}, THE Vaccination_Management_Module SHALL validar pertenencia a tenant/rancho
+5. WHEN un usuario archiva un tipo via DELETE /api/v1/vaccines/types/{id}, THE Vaccination_Management_Module SHALL validar que no existan vacunas activas con ese tipo
+6. WHEN se crea una vacuna, THE Vaccination_Management_Module SHALL validar que id_tipo_vacuna existe, pertenece al tenant/rancho, y está activo
 
 ### Requirement 3: Gestión de Vías de Administración
 
-**User Story:** Como administrador, quiero gestionar vías de administración de vacunas, para que estandarice los métodos de aplicación.
+**User Story:** Como administrador, quiero gestionar vías de administración de vacunas con CRUD completo, para que cree y personalice los métodos de aplicación según mis necesidades.
 
 #### Acceptance Criteria
 
-1. THE Vaccination_Management_Module SHALL soportar exactamente cinco vías predefinidas: Intramuscular, Subcutánea, Intranasal, Oral, Intravenosa
-2. WHEN un usuario consulta vías via GET /api/v1/vaccines/routes, THE Vaccination_Management_Module SHALL retornar array con id_via_administracion, nombre, abreviatura, descripcion
-3. THE Vaccination_Management_Module SHALL almacenar vías en tabla administration_routes con campos: id_via_administracion (UUID PK), nombre (VARCHAR 50 UNIQUE), abreviatura (VARCHAR 10), descripcion (TEXT), activo (BOOLEAN DEFAULT TRUE)
-4. WHEN se crea una vacuna, THE Vaccination_Management_Module SHALL validar que id_via_administracion existe y está activo
+1. WHEN un usuario crea una vía via POST /api/v1/vaccines/routes, THE Vaccination_Management_Module SHALL crear registro con campos: id_via_administracion (UUID), nombre (VARCHAR 50 NOT NULL UNIQUE), abreviatura (VARCHAR 10), descripcion (TEXT), rancho_id (UUID NOT NULL), tenant_id (UUID NOT NULL), activo (BOOLEAN DEFAULT TRUE), created_at, created_by
+2. WHEN se proporciona nombre vacío o duplicado, THE Vaccination_Management_Module SHALL retornar HTTP 400/409 respectivamente
+3. WHEN un usuario consulta vías via GET /api/v1/vaccines/routes, THE Vaccination_Management_Module SHALL retornar array filtrado por tenant_id y rancho_id con campos: id_via_administracion, nombre, abreviatura, descripcion, activo
+4. WHEN un usuario actualiza una vía via PUT /api/v1/vaccines/routes/{id}, THE Vaccination_Management_Module SHALL validar pertenencia a tenant/rancho y actualizar campos
+5. WHEN un usuario archiva una vía via DELETE /api/v1/vaccines/routes/{id}, THE Vaccination_Management_Module SHALL validar que no existan vacunas activas con esa vía
+6. WHEN se crea una vacuna, THE Vaccination_Management_Module SHALL validar que id_via_administracion existe, pertenece al tenant/rancho, y está activo
 
 ### Requirement 4: Registro de Vacunas en Inventario
 
@@ -191,7 +200,7 @@ El módulo de gestión de vacunas (vaccination-management) es un componente crí
 #### Acceptance Criteria
 
 1. THE Vaccination_Management_Module SHALL exponer endpoints REST bajo ruta base /api/v1/vaccines/ y /api/v1/vaccinations/ con autenticación JWT obligatoria
-2. THE Vaccination_Management_Module SHALL implementar endpoints: POST /vaccines, GET /vaccines, GET /vaccines/{id}, PUT /vaccines/{id}, DELETE /vaccines/{id} (soft delete), GET /vaccines/{id}/lots, POST /vaccine-lots, PUT /vaccine-lots/{id}/adjust-stock, POST /vaccinations, GET /vaccinations, GET /animals/{id}/vaccinations, GET /vaccinations/upcoming, GET /vaccinations/unvaccinated, GET /alerts/stock, GET /alerts/expiration, GET /reports/vaccine-consumption, GET /reports/vaccination-costs
+2. THE Vaccination_Management_Module SHALL implementar endpoints: POST /vaccines/categories, GET /vaccines/categories, PUT /vaccines/categories/{id}, DELETE /vaccines/categories/{id} (soft delete), POST /vaccines/types, GET /vaccines/types, PUT /vaccines/types/{id}, DELETE /vaccines/types/{id}, POST /vaccines/routes, GET /vaccines/routes, PUT /vaccines/routes/{id}, DELETE /vaccines/routes/{id}, POST /vaccines, GET /vaccines, GET /vaccines/{id}, PUT /vaccines/{id}, DELETE /vaccines/{id} (soft delete), GET /vaccines/{id}/lots, POST /vaccine-lots, PUT /vaccine-lots/{id}/adjust-stock, POST /vaccinations, GET /vaccinations, GET /animals/{id}/vaccinations, GET /vaccinations/upcoming, GET /vaccinations/unvaccinated, GET /alerts/stock, GET /alerts/expiration, GET /reports/vaccine-consumption, GET /reports/vaccination-costs
 3. THE Vaccination_Management_Module SHALL aceptar requests con Content-Type: application/json; charset=UTF-8
 4. WHEN endpoint retorna colección, THE Vaccination_Management_Module SHALL incluir pagination con campos: page, size, total
 5. WHEN operación completa exitosamente, THE Vaccination_Management_Module SHALL retornar: 200 para lecturas/actualizaciones, 201 para creaciones, 204 para archivado
