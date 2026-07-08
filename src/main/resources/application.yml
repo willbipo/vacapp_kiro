@@ -28,7 +28,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
-      ddl-auto: ${DDL_AUTO:validate}
+      ddl-auto: ${DDL_AUTO:update}
     show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:
@@ -38,6 +38,15 @@ spring:
           batch_size: 20
         order_inserts: true
         order_updates: true
+  
+  # Configuración de Caché (Caffeine)
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=15m
+    cache-names:
+      - cattleStats
+      - animalStats
   
   # Configuración de Thymeleaf
   thymeleaf:
@@ -67,8 +76,11 @@ logging:
     mx.vacapp: ${APP_LOG_LEVEL:INFO}
     mx.vacapp.users: ${USERS_LOG_LEVEL:INFO}
     mx.vacapp.users.internal.infrastructure.security: ${SECURITY_LOG_LEVEL:INFO}
+    mx.vacapp.cattle: ${CATTLE_LOG_LEVEL:INFO}
+    mx.vacapp.geography: ${GEOGRAPHY_LOG_LEVEL:INFO}
     org.springframework.security: WARN
     org.springframework.web: ${WEB_LOG_LEVEL:INFO}
+    org.springframework.cache: ${CACHE_LOG_LEVEL:INFO}
     org.hibernate.SQL: ${SQL_LOG_LEVEL:WARN}
     org.hibernate.type.descriptor.sql.BasicBinder: WARN
   pattern:
@@ -127,6 +139,31 @@ vacapp:
     allowed-headers: "*"
     # Permitir credenciales
     allow-credentials: true
+  
+  # Configuración del módulo cattle-inventory
+  cattle:
+    # Configuración de caché para estadísticas de ganado
+    cache:
+      # TTL (Time To Live) en minutos para estadísticas del módulo
+      stats-ttl-minutes: 15
+      # Tamaño máximo del caché de estadísticas
+      stats-max-size: 1000
+    
+    # Configuración de validaciones
+    validation:
+      # Longitud mínima del arete (identificación del animal)
+      arete-min-length: 4
+      # Longitud máxima del arete
+      arete-max-length: 20
+      # Longitud máxima del folio REEMO
+      folio-reemo-max-length: 50
+    
+    # Configuración de paginación
+    pagination:
+      # Tamaño de página por defecto para listados de ganado
+      default-page-size: 100
+      # Tamaño máximo de página permitido
+      max-page-size: 500
 
 # Perfiles de Spring
 ---

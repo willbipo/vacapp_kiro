@@ -282,6 +282,37 @@
 							</configOptions>
 						</configuration>
 					</execution>
+					<execution>
+						<id>generate-cattle-api</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<phase>generate-sources</phase>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/openapi/openapi-cattle.yaml</inputSpec>
+							<generatorName>spring</generatorName>
+							<output>${project.build.directory}/generated-sources/openapi</output>
+							<apiPackage>mx.vacapp.cattle.internal.infrastructure.controllers.mobile.api</apiPackage>
+							<modelPackage>mx.vacapp.cattle.internal.infrastructure.controllers.mobile.dtos</modelPackage>
+							<generateApis>true</generateApis>
+							<generateModels>true</generateModels>
+							<generateApiTests>false</generateApiTests>
+							<generateModelTests>false</generateModelTests>
+							<generateApiDocumentation>false</generateApiDocumentation>
+							<generateModelDocumentation>false</generateModelDocumentation>
+							<generateSupportingFiles>false</generateSupportingFiles>
+							<configOptions>
+								<interfaceOnly>true</interfaceOnly>
+								<useSpringBoot3>true</useSpringBoot3>
+								<useTags>true</useTags>
+								<performBeanValidation>true</performBeanValidation>
+								<useOptional>false</useOptional>
+								<skipDefaultInterface>true</skipDefaultInterface>
+								<delegatePattern>false</delegatePattern>
+								<unhandledException>false</unhandledException>
+							</configOptions>
+						</configuration>
+					</execution>
 				</executions>
 			</plugin>
 		</plugins>

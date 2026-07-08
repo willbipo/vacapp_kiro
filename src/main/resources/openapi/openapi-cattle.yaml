@@ -1,0 +1,1645 @@
+openapi: 3.0.3
+
+info:
+  title: Vacapp Cattle Inventory API
+  description: |
+    API REST para el módulo de inventario de ganado bovino de Vacapp.
+    
+    Proporciona endpoints completos para la gestión integral del inventario de ganado bovino,
+    incluyendo identificación única (arete), genealogía, trazabilidad de movimientos entre
+    potreros, historial de pesos, eventos de salud (vacunaciones, tratamientos, partos),
+    y cumplimiento regulatorio mexicano (Folio REEMO).
+    
+    ## Características principales
+    - Registro de animales con arete único global
+    - Genealogía completa (madre, padre, hijos)
+    - Trazabilidad de movimientos entre potreros
+    - Historial de pesos con cálculo de ganancia diaria
+    - Eventos de salud (vacunaciones, tratamientos, partos)
+    - Registro automático de crías desde eventos de nacimiento
+    - Gestión de estados del animal (Activa, Preñada, Vendida, Muerta, etc.)
+    - Soporte para Folio REEMO (Registro Electrónico de Movilización de México)
+    - Estadísticas e indicadores del inventario
+    
+    ## Seguridad
+    Todos los endpoints requieren autenticación JWT mediante header 
+    `Authorization: Bearer {token}`.
+    
+    ## Multi-tenancy
+    Todos los endpoints filtran automáticamente por tenant_id del usuario autenticado,
+    excepto la validación de arete único que opera a nivel global.
+    
+  version: 1.0.0
+  contact:
+    name: Vacapp Development Team
+    email: dev@vacapp.mx
+
+servers:
+  - url: /api/v1
+    description: Base path para todos los endpoints de la API
+
+tags:
+  - name: Animals
+    description: Operaciones CRUD de animales y gestión de estados
+  - name: Weights
+    description: Registro y consulta de pesos del ganado
+  - name: Health
+    description: Eventos de salud (vacunaciones, tratamientos, partos)
+  - name: Movements
+    description: Movimientos de ganado entre potreros
+  - name: Statistics
+    description: Estadísticas e indicadores del inventario
+
+paths:
+  # ==========================================
+  # ANIMAL CRUD ENDPOINTS
+  # ==========================================
+  
+  /cattle:
+    post:
+      tags:
+        - Animals
+      summary: Crear un nuevo animal bovino
+      description: |
+        Registra un nuevo animal en el sistema con arete único global.
+        
+        **Validaciones críticas:**
+        - Arete debe ser único a nivel global (todos los tenants)
+        - Potrero debe existir y estar activo (validación vía GeographyService)
+        - Si se especifica madre_id, debe ser hembra y del mismo rancho
+        - Si se especifica padre_id, debe ser macho y del mismo rancho
+        - Fecha de nacimiento no puede ser futura
+        - Fecha de aretado no puede ser futura ni anterior a fecha de nacimiento
+        
+        **Comportamiento:**
+        - Status se asigna automáticamente como ACTIVA
+        - El arete se convierte a mayúsculas automáticamente
+        - Se crea registro inicial en historial de movimientos (pasture_history)
+        - Se registra operación en auditoría (cattle_audit)
+      operationId: createAnimal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAnimalRequest'
+      responses:
+        '201':
+          description: Animal creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimalResponse'
+        '400':
+          description: |
+            Solicitud inválida. Puede deberse a:
+            - Arete con formato inválido (solo alfanuméricos)
+            - Fecha de nacimiento futura
+            - Fecha de aretado inválida
+            - Potrero no existe o está inactivo
+            - Madre inválida (no existe, sexo Macho, o de otro rancho)
+            - Padre inválido (no existe, sexo Hembra, o de otro rancho)
+            - Campos requeridos faltantes o con valores inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-01-15T10:30:00"
+                status: 400
+                error: "Bad Request"
+                message: "El arete solo puede contener letras y números"
+                path: "/api/v1/cattle"
+        '409':
+          description: Conflicto - El arete ya existe en el sistema (único global)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-01-15T10:30:00"
+                status: 409
+                error: "Conflict"
+                message: "Arete ya registrado en el sistema"
+                path: "/api/v1/cattle"
+        '401':
+          description: No autenticado - Token JWT inválido o ausente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No autorizado - Usuario no tiene permisos para crear animales
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    get:
+      tags:
+        - Animals
+      summary: Listar animales con paginación y filtros
+      description: |
+        Retorna lista paginada de animales del rancho actual filtrados por tenant_id.
+        
+        **Parámetros de filtrado:**
+        - status: Filtrar por estado del animal
+        - tipo: Filtrar por tipo comercial
+        - sexo: Filtrar por sexo
+        - raza: Filtrar por raza
+        - potreroId: Filtrar animales en un potrero específico
+        - search: Búsqueda por texto en arete o notas
+        
+        **Paginación:**
+        - page: Número de página (0-based, default 0)
+        - size: Tamaño de página (1-100, default 20)
+        - sort: Ordenamiento (ejemplo: "arete,asc" o "fechaNacimiento,desc")
+      operationId: listAnimals
+      parameters:
+        - name: page
+          in: query
+          description: Número de página (0-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Cantidad de elementos por página
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+        - name: status
+          in: query
+          description: Filtrar por status del animal
+          required: false
+          schema:
+            $ref: '#/components/schemas/CattleStatus'
+        - name: tipo
+          in: query
+          description: Filtrar por tipo comercial
+          required: false
+          schema:
+            $ref: '#/components/schemas/CattleType'
+        - name: sexo
+          in: query
+          description: Filtrar por sexo
+          required: false
+          schema:
+            $ref: '#/components/schemas/Sex'
+        - name: raza
+          in: query
+          description: Filtrar por raza
+          required: false
+          schema:
+            $ref: '#/components/schemas/Breed'
+        - name: potreroId
+          in: query
+          description: Filtrar animales en un potrero específico
+          required: false
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        - name: search
+          in: query
+          description: Búsqueda por texto en arete o notas (case-insensitive)
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+          example: "MX123"
+        - name: sort
+          in: query
+          description: Ordenamiento (campo,dirección)
+          required: false
+          schema:
+            type: string
+          example: "arete,asc"
+      responses:
+        '200':
+          description: Lista de animales obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - content
+                  - page
+                  - size
+                  - totalElements
+                  - totalPages
+                properties:
+                  content:
+                    type: array
+                    description: Lista de animales en la página actual
+                    items:
+                      $ref: '#/components/schemas/AnimalResponse'
+                  page:
+                    type: integer
+                    description: Número de página actual (0-based)
+                    example: 0
+                  size:
+                    type: integer
+                    description: Tamaño de página
+                    example: 20
+                  totalElements:
+                    type: integer
+                    description: Total de elementos disponibles
+                    example: 150
+                  totalPages:
+                    type: integer
+                    description: Total de páginas disponibles
+                    example: 8
+        '400':
+          description: Parámetros de consulta inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autenticado - Token JWT inválido o ausente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
+  /cattle/{id}:
+    get:
+      tags:
+        - Animals
+      summary: Obtener detalles completos de un animal
+      description: |
+        Retorna información detallada de un animal específico incluyendo:
+        - Información general (arete, sexo, raza, edad calculada en tiempo real)
+        - Genealogía (madre, padre, cantidad de hijos)
+        - Ubicación actual (potrero)
+        - Peso más reciente
+        
+        **Nota:** La edad en meses se calcula en tiempo real desde fecha_nacimiento.
+      operationId: getAnimalById
+      parameters:
+        - name: id
+          in: path
+          description: UUID del animal
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Detalles del animal obtenidos exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimalDetailResponse'
+        '404':
+          description: Animal no encontrado o no pertenece al tenant del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-01-15T10:30:00"
+                status: 404
+                error: "Not Found"
+                message: "Animal no encontrado"
+                path: "/api/v1/cattle/550e8400-e29b-41d4-a716-446655440000"
+        '401':
+          description: No autenticado - Token JWT inválido o ausente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    put:
+      tags:
+        - Animals
+      summary: Actualizar información de un animal
+      description: |
+        Actualiza campos modificables de un animal existente.
+        
+        **Campos NO modificables:**
+        - arete (identificador único)
+        - sexo
+        - raza
+        - fechaNacimiento
+        - madreId, padreId (genealogía)
+        - status (usar endpoint específico de cambio de status)
+        
+        **Campos modificables:**
+        - areteAnterior
+        - folioReemo
+        - tipo (tipo comercial)
+        - observaciones (nota)
+        
+        **Restricción:** No se puede actualizar un animal con status Vendida o Muerta.
+      operationId: updateAnimal
+      parameters:
+        - name: id
+          in: path
+          description: UUID del animal a actualizar
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAnimalRequest'
+      responses:
+        '200':
+          description: Animal actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimalResponse'
+        '400':
+          description: |
+            Solicitud inválida. Puede deberse a:
+            - Animal con status Vendida o Muerta (no modificable)
+            - Formato inválido de folioReemo
+            - Tipo comercial inválido
+            - Observaciones exceden longitud máxima
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-01-15T10:30:00"
+                status: 400
+                error: "Bad Request"
+                message: "No se puede modificar un animal vendido o muerto"
+                path: "/api/v1/cattle/550e8400-e29b-41d4-a716-446655440000"
+        '404':
+          description: Animal no encontrado o no pertenece al tenant del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autenticado - Token JWT inválido o ausente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    delete:
+      tags:
+        - Animals
+      summary: Archivar/desactivar un animal
+      description: |
+        Marca un animal como inactivo en el sistema.
+        
+        **Comportamiento:**
+        - Cambia el status del animal a un estado inactivo
+        - Actualiza fecha_salida en el registro actual de pasture_history
+        - Registra operación en auditoría
+        
+        **Nota:** Este endpoint NO elimina físicamente el animal de la base de datos,
+        solo lo marca como inactivo para mantener trazabilidad e integridad referencial.
+        
+        **Restricción:** No se puede desactivar un animal ya vendido o muerto.
+      operationId: deleteAnimal
+      parameters:
+        - name: id
+          in: path
+          description: UUID del animal a archivar
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '204':
+          description: Animal archivado exitosamente (sin contenido en respuesta)
+        '400':
+          description: Animal con status Vendida o Muerta (no se puede archivar nuevamente)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Animal no encontrado o no pertenece al tenant del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autenticado - Token JWT inválido o ausente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
+  # ==========================================
+  # MOVEMENT ENDPOINTS
+  # ==========================================
+  
+  /cattle/{id}/movements:
+    get:
+      tags:
+        - Movements
+      summary: Obtener historial de movimientos de un animal entre potreros
+      description: |
+        Retorna el historial completo de movimientos de un animal entre potreros,
+        ordenado cronológicamente (fecha_entrada DESC).
+        
+        **Información incluida:**
+        - Potrero (id y nombre)
+        - Fecha de entrada al potrero
+        - Fecha de salida del potrero (null si es ubicación actual)
+        - Días de permanencia en el potrero (calculado)
+        - Usuario que registró el movimiento
+      operationId: getMovementHistory
+      parameters:
+        - name: id
+          in: path
+          description: UUID del animal
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Historial de movimientos obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PastureHistoryResponse'
+        '404':
+          description: Animal no encontrado o no pertenece al tenant del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autenticado - Token JWT inválido o ausente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
+  /cattle/{id}/move:
+    post:
+      tags:
+        - Movements
+      summary: Mover animal a un nuevo potrero
+      description: |
+        Mueve un animal de su potrero actual a un nuevo potrero destino.
+        
+        **Validaciones:**
+        - Animal debe existir y pertenecer al tenant
+        - Animal debe tener status activo (no Vendida ni Muerta)
+        - Potrero destino debe existir y estar activo (vía GeographyService)
+        
+        **Comportamiento:**
+        - Actualiza fecha_salida en registro actual de pasture_history
+        - Inserta nuevo registro con fecha_entrada = NOW y fecha_salida = null
+        - Registra movimiento en auditoría (cattle_audit)
+        
+        **Unicidad:** Un animal solo puede tener un registro con fecha_salida = null
+        (ubicación actual única).
+      operationId: moveAnimal
+      parameters:
+        - name: id
+          in: path
+          description: UUID del animal a mover
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveAnimalRequest'
+      responses:
+        '200':
+          description: Animal movido exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - newPastureId
+                properties:
+                  success:
+                    type: boolean
+                    description: Indica si el movimiento fue exitoso
+                    example: true
+                  message:
+                    type: string
+                    description: Mensaje de confirmación
+                    example: "Animal movido exitosamente al potrero Norte"
+                  newPastureId:
+                    type: string
+                    format: uuid
+                    description: UUID del potrero destino
+                    example: "550e8400-e29b-41d4-a716-446655440002"
+        '400':
+          description: |
+            Solicitud inválida. Puede deberse a:
+            - Animal con status Vendida o Muerta (no se puede mover)
+            - Potrero destino no existe o está inactivo
+            - Animal ya está en el potrero destino
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-01-15T10:30:00"
+                status: 400
+                error: "Bad Request"
+                message: "No se puede mover animal vendido o muerto"
+                path: "/api/v1/cattle/550e8400-e29b-41d4-a716-446655440000/move"
+        '404':
+          description: Animal no encontrado o no pertenece al tenant del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autenticado - Token JWT inválido o ausente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
+  # ==========================================
+  # WEIGHT ENDPOINTS
+  # ==========================================
+  
+  /cattle/{id}/weights:
+    get:
+      tags:
+        - Weights
+      summary: Obtener historial de pesos de un animal
+      description: |
+        Retorna el historial completo de pesos de un animal ordenado cronológicamente
+        (más reciente primero).
+        
+        Incluye cálculo de ganancia diaria entre pesos consecutivos y días transcurridos
+        desde el último pesaje.
+        
+        **Permisos**: Usuario autenticado del mismo tenant que el animal.
+      operationId: getWeightHistory
+      parameters:
+        - name: id
+          in: path
+          description: UUID del animal
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Historial de pesos retornado exitosamente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeightResponse'
+        '401':
+          description: No autenticado - Token JWT faltante o inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Acceso denegado - El animal pertenece a otro tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Animal no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    post:
+      tags:
+        - Weights
+      summary: Registrar nuevo peso de un animal
+      description: |
+        Registra un nuevo peso para un animal en una fecha específica.
+        
+        El sistema calcula automáticamente la ganancia diaria comparando con el peso
+        anterior registrado.
+        
+        **Validaciones**:
+        - El animal debe existir y pertenecer al tenant del usuario autenticado
+        - El animal no puede estar con status Vendida o Muerta
+        - El peso debe ser mayor que cero
+        - La fecha de pesaje no puede ser futura
+        
+        **Permisos**: Usuario autenticado del mismo tenant que el animal.
+      operationId: recordWeight
+      parameters:
+        - name: id
+          in: path
+          description: UUID del animal
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        description: Datos del peso a registrar
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordWeightRequest'
+      responses:
+        '201':
+          description: Peso registrado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeightResponse'
+        '400':
+          description: |
+            Validación fallida - Puede ocurrir si:
+            - El peso es menor o igual a cero
+            - La fecha de pesaje es futura
+            - El animal está vendido o muerto
+            - Campos requeridos faltantes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autenticado - Token JWT faltante o inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Acceso denegado - El animal pertenece a otro tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Animal no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
+  # ==========================================
+  # HEALTH EVENT ENDPOINTS
+  # ==========================================
+  
+  /cattle/{id}/health:
+    get:
+      tags:
+        - Health
+      summary: Obtener historial de eventos de salud de un animal
+      description: |
+        Retorna el historial completo de eventos de salud del animal especificado,
+        ordenado cronológicamente por fecha de evento (más reciente primero).
+        
+        Incluye todos los tipos de eventos: vacunaciones, tratamientos, diagnósticos,
+        cirugías, revisiones y partos.
+        
+        **Validaciones:**
+        - El animal debe existir
+        - El animal debe pertenecer al tenant del usuario autenticado
+        
+        **Permisos:**
+        - Requiere autenticación JWT
+        - Solo puede acceder a animales de su propio tenant
+      operationId: getHealthHistory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID del animal
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Historial de eventos de salud obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HealthEventResponse'
+              example:
+                - eventId: "550e8400-e29b-41d4-a716-446655440010"
+                  animalId: "550e8400-e29b-41d4-a716-446655440000"
+                  tipoEvento: "Vacunacion"
+                  fecha: "2024-03-15"
+                  descripcion: "Vacunación contra brucelosis"
+                  medicamento: "Brucella Abortus RB51"
+                  dosis: "2ml subcutánea"
+                  veterinario: "Dr. Juan Pérez"
+                  proximaFecha: "2024-09-15"
+                  costo: 350.00
+                  observaciones: "Animal respondió bien, sin reacciones adversas"
+                  recordedAt: "2024-03-15T10:30:00"
+                - eventId: "550e8400-e29b-41d4-a716-446655440011"
+                  animalId: "550e8400-e29b-41d4-a716-446655440000"
+                  tipoEvento: "Desparasitacion"
+                  fecha: "2024-01-20"
+                  descripcion: "Desparasitación interna"
+                  medicamento: "Ivermectina"
+                  dosis: "1ml por 50kg"
+                  veterinario: "MVZ María López"
+                  costo: 180.00
+                  observaciones: "Aplicación rutinaria"
+                  recordedAt: "2024-01-20T14:15:00"
+        '404':
+          description: Animal no encontrado o no pertenece al tenant del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-03-15T10:30:00"
+                status: 404
+                error: "Not Found"
+                message: "Animal no encontrado"
+                path: "/api/v1/cattle/550e8400-e29b-41d4-a716-446655440000/health"
+    
+    post:
+      tags:
+        - Health
+      summary: Registrar nuevo evento de salud
+      description: |
+        Crea un nuevo registro de evento de salud para el animal especificado.
+        
+        Tipos de eventos soportados:
+        - **Vacunacion**: Aplicación de vacunas preventivas
+        - **Desparasitacion**: Tratamiento antiparasitario
+        - **Tratamiento**: Tratamiento médico general
+        - **Diagnostico**: Diagnóstico de condición médica
+        - **Cirugia**: Procedimiento quirúrgico
+        - **Revision**: Revisión veterinaria general
+        - **Birth**: Evento de parto (crea automáticamente registro de cría)
+        
+        **Validaciones:**
+        - El animal debe existir y pertenecer al tenant del usuario
+        - El animal no puede estar en status Vendida o Muerta
+        - La fecha del evento no puede ser futura
+        - Para eventos de tipo Birth, el animal debe ser hembra
+        - Todos los campos requeridos deben estar presentes
+        
+        **Nota especial sobre eventos Birth:**
+        Este endpoint NO crea automáticamente el registro de la cría.
+        Para registrar partos con creación automática de cría, utilizar
+        el endpoint especializado POST /cattle/{id}/birth (Task 13.6).
+        
+        **Permisos:**
+        - Requiere autenticación JWT
+        - Solo puede registrar eventos en animales de su propio tenant
+      operationId: recordHealthEvent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID del animal
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        description: Información del evento de salud a registrar
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordHealthEventRequest'
+            example:
+              tipoEvento: "Vacunacion"
+              fecha: "2024-03-15"
+              descripcion: "Vacunación contra brucelosis"
+              medicamento: "Brucella Abortus RB51"
+              dosis: "2ml subcutánea"
+              veterinario: "Dr. Juan Pérez"
+              proximaFecha: "2024-09-15"
+              costo: 350.00
+              observaciones: "Animal respondió bien a la vacuna, sin reacciones adversas"
+      responses:
+        '201':
+          description: Evento de salud registrado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthEventResponse'
+              example:
+                eventId: "550e8400-e29b-41d4-a716-446655440010"
+                animalId: "550e8400-e29b-41d4-a716-446655440000"
+                tipoEvento: "Vacunacion"
+                fecha: "2024-03-15"
+                descripcion: "Vacunación contra brucelosis"
+                medicamento: "Brucella Abortus RB51"
+                dosis: "2ml subcutánea"
+                veterinario: "Dr. Juan Pérez"
+                proximaFecha: "2024-09-15"
+                costo: 350.00
+                observaciones: "Animal respondió bien a la vacuna, sin reacciones adversas"
+                recordedAt: "2024-03-15T10:30:00"
+        '400':
+          description: Datos de entrada inválidos o violación de reglas de negocio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidDate:
+                  summary: Fecha futura no permitida
+                  value:
+                    timestamp: "2024-03-15T10:30:00"
+                    status: 400
+                    error: "Bad Request"
+                    message: "La fecha del evento no puede ser futura"
+                    path: "/api/v1/cattle/550e8400-e29b-41d4-a716-446655440000/health"
+                soldOrDead:
+                  summary: Animal vendido o muerto
+                  value:
+                    timestamp: "2024-03-15T10:30:00"
+                    status: 400
+                    error: "Bad Request"
+                    message: "No se puede registrar evento de salud en animal vendido o muerto"
+                    path: "/api/v1/cattle/550e8400-e29b-41d4-a716-446655440000/health"
+                validationError:
+                  summary: Errores de validación de campos
+                  value:
+                    timestamp: "2024-03-15T10:30:00"
+                    status: 400
+                    error: "Bad Request"
+                    message: "Error de validación en los datos de entrada"
+                    path: "/api/v1/cattle/550e8400-e29b-41d4-a716-446655440000/health"
+                    errors:
+                      - field: "tipoEvento"
+                        message: "El tipo de evento es requerido"
+                      - field: "fecha"
+                        message: "La fecha es requerida"
+                      - field: "descripcion"
+                        message: "La descripción es requerida"
+        '404':
+          description: Animal no encontrado o no pertenece al tenant del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-03-15T10:30:00"
+                status: 404
+                error: "Not Found"
+                message: "Animal no encontrado"
+                path: "/api/v1/cattle/550e8400-e29b-41d4-a716-446655440000/health"
+
+components:
+  schemas:
+    # ==========================================
+    # REQUEST DTOs
+    # ==========================================
+    
+    CreateAnimalRequest:
+      type: object
+      description: DTO para crear un nuevo animal bovino en el sistema
+      required:
+        - arete
+        - sexo
+        - raza
+        - fechaNacimiento
+        - tipo
+        - status
+        - potreroId
+        - ranchoId
+      properties:
+        arete:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: '^[a-zA-Z0-9]+$'
+          description: Identificador único del animal (4-50 caracteres alfanuméricos)
+          example: "MX12345"
+        areteAnterior:
+          type: string
+          maxLength: 20
+          description: Arete previo del animal (opcional)
+          example: "ABC123"
+        sexo:
+          $ref: '#/components/schemas/Sex'
+        raza:
+          $ref: '#/components/schemas/Breed'
+        fechaNacimiento:
+          type: string
+          format: date
+          description: Fecha de nacimiento del animal (debe ser pasada)
+          example: "2023-03-15"
+        fechaAretado:
+          type: string
+          format: date
+          description: Fecha en que se colocó el arete (opcional, debe ser pasada)
+          example: "2023-03-20"
+        tipo:
+          $ref: '#/components/schemas/CattleType'
+        status:
+          $ref: '#/components/schemas/CattleStatus'
+        folioReemo:
+          type: string
+          maxLength: 50
+          pattern: '^[a-zA-Z0-9\-]*$'
+          description: Folio REEMO para regulación mexicana (opcional)
+          example: "REEMO-2024-001"
+        nota:
+          type: string
+          maxLength: 2000
+          description: Observaciones libres sobre el animal (opcional)
+          example: "Animal de buena genética"
+        madreId:
+          type: string
+          format: uuid
+          description: UUID de la madre (opcional)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        padreId:
+          type: string
+          format: uuid
+          description: UUID del padre (opcional)
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        potreroId:
+          type: string
+          format: uuid
+          description: UUID del potrero de asignación inicial
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        ranchoId:
+          type: string
+          format: uuid
+          description: UUID del rancho al que pertenece
+          example: "550e8400-e29b-41d4-a716-446655440003"
+        meses:
+          type: integer
+          minimum: 0
+          description: Edad calculada en meses (opcional, calculado automáticamente si se omite)
+          example: 12
+    
+    UpdateAnimalRequest:
+      type: object
+      description: DTO para actualizar información de un animal existente (solo campos modificables)
+      properties:
+        areteAnterior:
+          type: string
+          maxLength: 20
+          description: Arete previo del animal
+          example: "ABC123"
+        folioReemo:
+          type: string
+          maxLength: 50
+          pattern: '^[a-zA-Z0-9\-]*$'
+          description: Folio REEMO para regulación mexicana
+          example: "REEMO-2024-001"
+        tipo:
+          $ref: '#/components/schemas/CattleType'
+        observaciones:
+          type: string
+          maxLength: 2000
+          description: Observaciones libres sobre el animal
+          example: "Animal de buena genética, actualizado en revisión"
+    
+    MoveAnimalRequest:
+      type: object
+      description: DTO para mover un animal entre potreros
+      required:
+        - potreroDestinoId
+      properties:
+        potreroDestinoId:
+          type: string
+          format: uuid
+          description: UUID del potrero destino al que se moverá el animal
+          example: "550e8400-e29b-41d4-a716-446655440002"
+    
+    RecordWeightRequest:
+      type: object
+      description: DTO para registrar un nuevo peso de un animal
+      required:
+        - pesoKg
+        - fechaPesaje
+      properties:
+        pesoKg:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: Peso del animal en kilogramos (debe ser mayor que cero)
+          example: 450.50
+        fechaPesaje:
+          type: string
+          format: date
+          description: Fecha en que se realizó el pesaje (no puede ser futura)
+          example: "2024-03-15"
+        notas:
+          type: string
+          maxLength: 500
+          description: Observaciones libres sobre el pesaje
+          example: "Pesaje rutinario, animal en buen estado"
+    
+    RecordHealthEventRequest:
+      type: object
+      description: DTO para registrar un evento de salud de un animal
+      required:
+        - tipoEvento
+        - fecha
+        - descripcion
+      properties:
+        tipoEvento:
+          $ref: '#/components/schemas/HealthEventType'
+        fecha:
+          type: string
+          format: date
+          description: Fecha en que ocurrió el evento (no puede ser futura)
+          example: "2024-01-15"
+        descripcion:
+          type: string
+          maxLength: 500
+          description: Descripción del evento de salud
+          example: "Vacunación contra brucelosis"
+        medicamento:
+          type: string
+          maxLength: 200
+          description: Nombre del medicamento o producto utilizado
+          example: "Brucelosis Cepa 19"
+        dosis:
+          type: string
+          maxLength: 100
+          description: Dosis del medicamento administrado
+          example: "2ml subcutánea"
+        veterinario:
+          type: string
+          maxLength: 200
+          description: Nombre del veterinario que atendió el evento
+          example: "Dr. Juan Pérez"
+        proximaFecha:
+          type: string
+          format: date
+          description: Fecha de próxima aplicación o seguimiento (debe ser futura)
+          example: "2025-01-15"
+        costo:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Costo económico del evento en pesos
+          example: 350.00
+        observaciones:
+          type: string
+          maxLength: 1000
+          description: Observaciones adicionales sobre el evento
+          example: "Animal respondió bien a la vacuna, sin reacciones adversas"
+    
+    # ==========================================
+    # RESPONSE DTOs
+    # ==========================================
+    
+    AnimalResponse:
+      type: object
+      description: DTO de respuesta con información básica de un animal bovino
+      required:
+        - animal_id
+        - arete
+        - sexo
+        - raza
+        - edad_meses
+        - tipo
+        - status
+      properties:
+        animal_id:
+          type: string
+          format: uuid
+          description: Identificador único del animal
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        arete:
+          type: string
+          description: Número identificador único del animal
+          example: "MX12345"
+        sexo:
+          $ref: '#/components/schemas/Sex'
+        raza:
+          $ref: '#/components/schemas/Breed'
+        edad_meses:
+          type: integer
+          description: Edad calculada en meses desde fecha de nacimiento
+          example: 24
+        tipo:
+          $ref: '#/components/schemas/CattleType'
+        status:
+          $ref: '#/components/schemas/CattleStatus'
+        potrero_actual:
+          type: string
+          format: uuid
+          description: UUID del potrero donde se encuentra actualmente
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        peso_actual:
+          type: number
+          format: decimal
+          description: Último peso registrado en kilogramos
+          example: 450.50
+        nombre_madre:
+          type: string
+          description: Arete de la madre
+          example: "MX98765"
+        nombre_padre:
+          type: string
+          description: Arete del padre
+          example: "MX54321"
+    
+    AnimalDetailResponse:
+      type: object
+      description: DTO de respuesta extendida con información completa del animal incluyendo genealogía
+      required:
+        - animalId
+        - arete
+        - sexo
+        - raza
+        - fechaNacimiento
+        - tipo
+        - status
+        - hijosCount
+        - createdAt
+        - updatedAt
+      properties:
+        animalId:
+          type: string
+          format: uuid
+          description: Identificador único del animal
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        arete:
+          type: string
+          description: Identificador único del animal
+          example: "MX12345"
+        areteAnterior:
+          type: string
+          description: Arete previo del animal
+          example: "ABC123"
+        sexo:
+          type: string
+          description: Sexo del animal (macho/hembra)
+          example: "hembra"
+        raza:
+          type: string
+          description: Raza del animal
+          example: "angus"
+        fechaNacimiento:
+          type: string
+          format: date
+          description: Fecha de nacimiento del animal
+          example: "2023-03-15"
+        fechaAretado:
+          type: string
+          format: date
+          description: Fecha en que se colocó el arete
+          example: "2023-03-20"
+        tipo:
+          type: string
+          description: Tipo comercial del animal
+          example: "vientre"
+        status:
+          type: string
+          description: Estado actual del animal
+          example: "activa"
+        folioReemo:
+          type: string
+          description: Folio REEMO para regulación mexicana
+          example: "REEMO-2024-001"
+        observaciones:
+          type: string
+          description: Observaciones libres sobre el animal
+          example: "Animal de buena genética"
+        madreDetails:
+          $ref: '#/components/schemas/ParentSummary'
+        padreDetails:
+          $ref: '#/components/schemas/ParentSummary'
+        hijosCount:
+          type: integer
+          description: Cantidad de hijos registrados en el sistema
+          example: 3
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha y hora de creación del registro
+          example: "2024-01-15T10:30:00"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha y hora de última actualización del registro
+          example: "2024-01-20T14:45:00"
+    
+    ParentSummary:
+      type: object
+      description: Resumen de información de un animal padre o madre
+      required:
+        - animalId
+        - arete
+        - sexo
+        - raza
+        - edadMeses
+      properties:
+        animalId:
+          type: string
+          format: uuid
+          description: UUID del animal padre/madre
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        arete:
+          type: string
+          description: Identificador del animal padre/madre
+          example: "MX11111"
+        sexo:
+          type: string
+          description: Sexo del animal padre/madre
+          example: "hembra"
+        raza:
+          type: string
+          description: Raza del animal padre/madre
+          example: "angus"
+        edadMeses:
+          type: integer
+          description: Edad actual en meses del animal padre/madre
+          example: 48
+    
+    WeightResponse:
+      type: object
+      description: DTO de respuesta con información de un registro de peso
+      required:
+        - weightId
+        - animalId
+        - pesoKg
+        - fechaPesaje
+        - recordedAt
+      properties:
+        weightId:
+          type: string
+          format: uuid
+          description: Identificador único del registro de peso
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        animalId:
+          type: string
+          format: uuid
+          description: Identificador del animal
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        pesoKg:
+          type: number
+          format: decimal
+          description: Peso registrado en kilogramos
+          example: 385.50
+        fechaPesaje:
+          type: string
+          format: date
+          description: Fecha en que se realizó el pesaje
+          example: "2024-01-15"
+        ganancia_diaria:
+          type: number
+          format: decimal
+          description: Ganancia diaria en kg/día desde el peso anterior (null si es el primer peso)
+          example: 0.85
+        diasDesdeUltimoPesaje:
+          type: integer
+          description: Días transcurridos desde el último pesaje (null si es el primer peso)
+          example: 30
+        notas:
+          type: string
+          description: Observaciones sobre el pesaje
+          example: "Animal en buena condición"
+        recordedAt:
+          type: string
+          format: date-time
+          description: Timestamp de creación del registro en el sistema
+          example: "2024-01-15T14:30:00"
+    
+    HealthEventResponse:
+      type: object
+      description: DTO de respuesta con información de un evento de salud
+      required:
+        - eventId
+        - animalId
+        - tipoEvento
+        - fecha
+        - descripcion
+        - recordedAt
+      properties:
+        eventId:
+          type: string
+          format: uuid
+          description: Identificador único del evento de salud
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        animalId:
+          type: string
+          format: uuid
+          description: Identificador del animal
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        tipoEvento:
+          $ref: '#/components/schemas/HealthEventType'
+        fecha:
+          type: string
+          format: date
+          description: Fecha en que ocurrió el evento
+          example: "2024-01-15"
+        descripcion:
+          type: string
+          description: Descripción del evento
+          example: "Vacunación contra brucelosis"
+        medicamento:
+          type: string
+          description: Nombre del medicamento aplicado
+          example: "Brucella Abortus RB51"
+        dosis:
+          type: string
+          description: Dosis del medicamento
+          example: "2ml subcutánea"
+        veterinario:
+          type: string
+          description: Nombre del veterinario que realizó el evento
+          example: "Dr. Juan Pérez"
+        proximaFecha:
+          type: string
+          format: date
+          description: Fecha programada para próximo evento relacionado
+          example: "2024-07-15"
+        costo:
+          type: number
+          format: decimal
+          description: Costo económico del evento
+          example: 250.00
+        observaciones:
+          type: string
+          description: Observaciones adicionales del evento
+          example: "Animal respondió bien al tratamiento"
+        recordedAt:
+          type: string
+          format: date-time
+          description: Timestamp de registro del evento
+          example: "2024-01-15T10:30:00"
+    
+    PastureHistoryResponse:
+      type: object
+      description: DTO de respuesta para historial de movimientos entre potreros
+      required:
+        - historyId
+        - animalId
+        - potreroId
+        - potreroNombre
+        - fechaIngreso
+        - diasEnPotrero
+        - movedBy
+        - createdAt
+      properties:
+        historyId:
+          type: string
+          format: uuid
+          description: Identificador único del registro de historial
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        animalId:
+          type: string
+          format: uuid
+          description: Identificador del animal
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        potreroId:
+          type: string
+          format: uuid
+          description: Identificador del potrero
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        potreroNombre:
+          type: string
+          description: Nombre del potrero
+          example: "Potrero Norte"
+        fechaIngreso:
+          type: string
+          format: date
+          description: Fecha de entrada al potrero
+          example: "2024-01-15"
+        fechaSalida:
+          type: string
+          format: date
+          description: Fecha de salida del potrero (null si es ubicación actual)
+          example: "2024-03-20"
+        diasEnPotrero:
+          type: integer
+          description: Días de permanencia en el potrero
+          example: 65
+        movedBy:
+          type: string
+          format: uuid
+          description: Usuario que registró el movimiento
+          example: "550e8400-e29b-41d4-a716-446655440003"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp de creación del registro
+          example: "2024-01-15T10:30:00"
+    
+    CattleStatsResponse:
+      type: object
+      description: DTO de respuesta con estadísticas agregadas del inventario de ganado
+      required:
+        - totalAnimales
+        - totalActivos
+        - totalVendidos
+        - totalMuertos
+        - totalMachos
+        - totalHembras
+        - porTipo
+        - porRaza
+      properties:
+        totalAnimales:
+          type: integer
+          description: Total de animales en el inventario (todos los status)
+          example: 250
+        totalActivos:
+          type: integer
+          description: Total de animales activos (status Activa, Preñada, En Reposo)
+          example: 200
+        totalVendidos:
+          type: integer
+          description: Total de animales con status Vendida
+          example: 30
+        totalMuertos:
+          type: integer
+          description: Total de animales con status Muerta
+          example: 20
+        totalMachos:
+          type: integer
+          description: Total de animales con sexo Macho
+          example: 100
+        totalHembras:
+          type: integer
+          description: Total de animales con sexo Hembra
+          example: 150
+        porTipo:
+          type: object
+          description: Distribución de animales por tipo comercial
+          additionalProperties:
+            type: integer
+          example:
+            venta: 120
+            vientre: 80
+            engorda: 50
+        porRaza:
+          type: object
+          description: Distribución de animales por raza
+          additionalProperties:
+            type: integer
+          example:
+            angus: 90
+            charolais: 75
+            brahman: 85
+    
+    ErrorResponse:
+      type: object
+      description: DTO de respuesta para errores de validación o de negocio
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp del error
+          example: "2024-01-15T10:30:00"
+        status:
+          type: integer
+          description: Código de estado HTTP
+          example: 400
+        error:
+          type: string
+          description: Descripción breve del tipo de error
+          example: "Bad Request"
+        message:
+          type: string
+          description: Mensaje descriptivo del error
+          example: "El arete ya está registrado en el sistema"
+        path:
+          type: string
+          description: Path del endpoint que generó el error
+          example: "/api/v1/cattle"
+        errors:
+          type: array
+          description: Lista de errores de validación (cuando hay múltiples errores)
+          items:
+            $ref: '#/components/schemas/FieldError'
+    
+    FieldError:
+      type: object
+      description: Error de validación de un campo específico
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          description: Nombre del campo que falló la validación
+          example: "arete"
+        message:
+          type: string
+          description: Mensaje de error del campo
+          example: "El arete solo puede contener letras y números"
+    
+    # ==========================================
+    # ENUMS
+    # ==========================================
+    
+    Sex:
+      type: string
+      description: Sexo del animal bovino
+      enum:
+        - MACHO
+        - HEMBRA
+      example: "HEMBRA"
+    
+    Breed:
+      type: string
+      description: Raza del animal bovino
+      enum:
+        - CHAROLAIS
+        - ANGUS
+        - BRAHMAN
+        - HEREFORD
+        - SIMMENTAL
+        - LIMOUSIN
+        - CRIOLLO
+        - BRANGUS
+        - SANTA_GERTRUDIS
+        - CRUZADA
+      example: "ANGUS"
+    
+    CattleType:
+      type: string
+      description: Tipo comercial del animal
+      enum:
+        - VENTA
+        - CRIA
+        - ENGORDA
+        - SEMENTAL
+        - VIENTRE
+      example: "VIENTRE"
+    
+    CattleStatus:
+      type: string
+      description: Estado actual del animal en su ciclo de vida
+      enum:
+        - ACTIVA
+        - VENDIDA
+        - MUERTA
+        - PRESTADA
+        - PRENADA
+        - EN_REPOSO
+      example: "ACTIVA"
+    
+    HealthEventType:
+      type: string
+      description: Tipo de evento de salud
+      enum:
+        - Vacunacion
+        - Desparasitacion
+        - Tratamiento
+        - Diagnostico
+        - Cirugia
+        - Revision
+        - Birth
+      example: "Vacunacion"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Token JWT obtenido del endpoint de login del módulo users.
+        Incluir en el header: `Authorization: Bearer {token}`
+        
+        El token contiene información del usuario autenticado:
+        - user_id: UUID del usuario
+        - tenant_id: UUID del tenant (organización)
+        - rancho_id: UUID del rancho activo
+        - role: Rol del usuario para control de permisos
+
+security:
+  - bearerAuth: []
